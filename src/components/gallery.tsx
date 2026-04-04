@@ -273,11 +273,14 @@ export const Gallery: React.FC = () => {
                                 #{m.categoria || "Recuerdo"}
                               </div>
 
-                              <div className="aspect-[4/5] bg-slate-50 flex items-center justify-center overflow-hidden">
+                              <div className="aspect-[4/5] bg-slate-50 dark:bg-slate-800 flex items-center justify-center overflow-hidden transition-colors">
                                 {m.tipo === "video" ? (
                                   <video
                                     src={m.url}
                                     className="w-full h-full object-cover"
+                                    preload="metadata" // <-- AGREGAR ESTO
+                                    playsInline // <-- AGREGAR ESTO
+                                    muted // <-- RECOMENDADO PARA VISTA PREVIA
                                   />
                                 ) : (
                                   <img
@@ -335,6 +338,8 @@ export const Gallery: React.FC = () => {
                     controls
                     className="max-h-full w-full"
                     autoPlay
+                    playsInline
+                    preload="auto"
                   />
                 ) : (
                   <img
