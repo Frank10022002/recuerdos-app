@@ -72,6 +72,15 @@ export const Gallery: React.FC = () => {
     return () => window.removeEventListener("magicMemory", abrirAzar);
   }, [memorias]);
 
+  // FUNCIÓN AUXILIAR PARA VALIDAR FECHAS (La clave de la solución)
+  const parsearFechaSegura = (fechaStr: string) => {
+    if (!fechaStr) return new Date();
+    // Reemplazamos guiones por barras y quitamos la T para máxima compatibilidad
+    const limpio = fechaStr.replace(/-/g, "/").replace("T", " ");
+    const d = new Date(limpio);
+    return isNaN(d.getTime()) ? new Date() : d;
+  };
+
   const handleDelete = async (id: string) => {
     const res = await Swal.fire({
       title: "¿Borrar recuerdo?",
@@ -154,19 +163,19 @@ export const Gallery: React.FC = () => {
         : memorias.filter((m) => m.categoria === filtro);
 
     filtradas.forEach((m) => {
-      const d = new Date(m.fecha.replace(/-/g, "/").replace("T", " "));
-      const anio = isNaN(d.getTime()) ? "Otros" : d.getFullYear();
-      const mes = isNaN(d.getTime())
-        ? "Varios"
-        : d.toLocaleString("es-ES", { month: "long" }).toUpperCase();
-      const dia = isNaN(d.getTime()) ? "?" : d.getDate();
+      const d = parsearFechaSegura(m.fecha);
+      const anio = d.getFullYear();
+      const mes = d.toLocaleString("es-ES", { month: "long" }).toUpperCase();
+      const dia = d.getDate();
+
       if (!almanaque[anio]) almanaque[anio] = {};
       if (!almanaque[anio][mes]) almanaque[anio][mes] = {};
-      if (!almanaque[anio][mes][dia])
+      if (!almanaque[anio][mes][dia]) {
         almanaque[anio][mes][dia] = {
           nombre: d.toLocaleString("es-ES", { weekday: "long" }),
           fotos: [],
         };
+      }
       almanaque[anio][mes][dia].fotos.push(m);
     });
     return almanaque;
@@ -178,6 +187,7 @@ export const Gallery: React.FC = () => {
         Abriendo el baúl...
       </div>
     );
+
   const datosCrono = obtenerAlmanaque();
 
   return (
@@ -207,9 +217,9 @@ export const Gallery: React.FC = () => {
         </div>
       </div>
 
-      {/* GALERÍA */}
+      {/* GALERÍA POR AÑOS */}
       {Object.keys(datosCrono)
-        .reverse()
+        .sort((a, b) => Number(b) - Number(a))
         .map((anio) => (
           <div key={anio} className="mt-12 text-left">
             <h2 className="text-5xl md:text-7xl font-black text-slate-800/10 mb-8 select-none tracking-tighter">
@@ -224,7 +234,7 @@ export const Gallery: React.FC = () => {
                   {mes}
                 </h3>
                 {Object.keys(datosCrono[anio][mes])
-                  .reverse()
+                  .sort((a, b) => Number(b) - Number(a))
                   .map((dia) => (
                     <div key={dia} className="mb-12">
                       <p className="text-slate-400 text-[10px] mb-4 uppercase font-bold tracking-widest">
@@ -238,14 +248,14 @@ export const Gallery: React.FC = () => {
                             className="group relative bg-white rounded-[40px] overflow-hidden shadow-xl shadow-slate-100 border border-white"
                             whileHover={{ y: -8 }}
                           >
-                            {/* 1. AUTOR VISIBLE (Superior Izquierda) */}
+                            {/* AUTOR */}
                             <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-white/80 backdrop-blur-md px-2.5 py-1.5 rounded-full shadow-sm border border-white/40">
                               <img
                                 src={
                                   m.autorFoto ||
                                   `https://ui-avatars.com/api/?name=${m.autor}&background=fce7f3&color=ec4899`
                                 }
-                                className="w-5 h-5 rounded-full object-cover border border-white shadow-sm"
+                                className="w-5 h-5 rounded-full object-cover border border-white"
                                 alt="perfil"
                               />
                               <span className="text-[9px] font-black text-slate-700 uppercase tracking-tight">
@@ -253,7 +263,7 @@ export const Gallery: React.FC = () => {
                               </span>
                             </div>
 
-                            {/* 2. BOTÓN EDITAR RÁPIDO (Superior Derecha) */}
+                            {/* EDITAR */}
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -268,12 +278,10 @@ export const Gallery: React.FC = () => {
                               onClick={() => setSelected(m)}
                               className="cursor-pointer"
                             >
-                              {/* 3. TAG CATEGORÍA (Inferior Derecha) */}
                               <div className="absolute bottom-4 right-4 z-20 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[8px] font-black uppercase text-pink-500 border border-white/50 shadow-sm">
                                 #{m.categoria || "Recuerdo"}
                               </div>
-
-                              <div className="aspect-[4/5] bg-slate-50 dark:bg-slate-800 flex items-center justify-center overflow-hidden transition-colors">
+                              <div className="aspect-[4/5] bg-slate-50 flex items-center justify-center overflow-hidden">
                                 {m.tipo === "video" ? (
                                   <video
                                     src={m.url}
@@ -353,7 +361,7 @@ export const Gallery: React.FC = () => {
               </div>
 
               <div className="w-full md:w-[35%] p-8 md:p-12 flex flex-col gap-6 bg-white overflow-y-auto">
-                <div className="space-y-1">
+                <div>
                   <span className="bg-pink-100 text-pink-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">
                     #{selected.categoria || "Recuerdo"}
                   </span>
@@ -361,26 +369,19 @@ export const Gallery: React.FC = () => {
                     <CalendarDays size={12} /> Detalle
                   </h4>
                   <p className="text-2xl font-serif italic text-slate-800 leading-tight">
-                    {new Date(
-                      selected.fecha.replace(/-/g, "/").replace("T", " ")
-                    ).toLocaleDateString("es-ES", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })}
+                    {parsearFechaSegura(selected.fecha).toLocaleDateString(
+                      "es-ES",
+                      { day: "numeric", month: "long", year: "numeric" }
+                    )}
                   </p>
                   <p className="text-slate-400 text-xs flex items-center gap-1 font-bold bg-slate-50 w-fit px-3 py-1.5 rounded-full border border-slate-100 mt-2">
-                    <Clock size={12} className="text-pink-300" />{" "}
-                    {new Date(
-                      selected.fecha.replace(/-/g, "/").replace("T", " ")
-                    ).toLocaleTimeString("es-ES", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: true,
-                    })}
+                    <Clock size={12} className="text-pink-300" />
+                    {parsearFechaSegura(selected.fecha).toLocaleTimeString(
+                      "es-ES",
+                      { hour: "2-digit", minute: "2-digit", hour12: true }
+                    )}
                   </p>
                 </div>
-
                 <div className="h-px bg-slate-100 w-full" />
                 <div className="flex flex-col items-center gap-2">
                   <h4 className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">
@@ -408,8 +409,6 @@ export const Gallery: React.FC = () => {
                     "{selected.descripcion}"
                   </p>
                 </div>
-
-                {/* PIE DEL MODAL CENTRADO CON "SUBIDO POR" */}
                 <div className="pt-8 border-t border-slate-50 flex flex-col items-center gap-6 mt-auto">
                   <button
                     onClick={() => handleDelete(selected.id)}

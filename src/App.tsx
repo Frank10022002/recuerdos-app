@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { auth } from "./firebaseConfig";
 import {
   onAuthStateChanged,
@@ -35,37 +35,67 @@ export default function App() {
   const [subiendoPerfil, setSubiendoPerfil] = useState(false);
   const [displayName, setDisplayName] = useState("");
 
+  // Referencia para abrir el selector de archivos
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
-      if (currentUser) setDisplayName(currentUser.displayName || "");
+      if (currentUser) {
+        setDisplayName(currentUser.displayName || "");
+      }
       setLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
-  const dispararRecuerdoAzar = () => {
-    setActiveTab("gallery");
-    setIsMobileMenuOpen(false);
-    setTimeout(() => {
-      window.dispatchEvent(new Event("magicMemory"));
-    }, 200);
-  };
-
   const handleLogout = () => {
     Swal.fire({
       title: "¿Cerrar sesión?",
-      text: "¿Estás seguro(a) de que quieres salir del baúl?",
+      text: "¿Estás seguro(a) de que quieres salir?",
       icon: "question",
       showCancelButton: true,
       confirmButtonColor: "#1e293b",
       confirmButtonText: "Sí, salir",
       cancelButtonText: "Cancelar",
-      reverseButtons: true,
       customClass: { popup: "rounded-[32px]" },
     }).then((result) => {
       if (result.isConfirmed) signOut(auth);
     });
+  };
+
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    setSubiendoPerfil(true);
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", "tu_preset_aqui"); // CAMBIA ESTO
+
+    try {
+      const res = await fetch(
+        "https://api.cloudinary.com/v1_1/tu_cloud_name/image/upload", // CAMBIA ESTO
+        { method: "POST", body: formData }
+      );
+      const data = await res.json();
+
+      if (data.secure_url) {
+        await updateProfile(user, { photoURL: data.secure_url });
+        Swal.fire({
+          title: "¡Foto actualizada!",
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+        // Recargamos para que Firebase refresque el objeto user
+        window.location.reload();
+      }
+    } catch (error) {
+      Swal.fire("Error", "No se pudo subir la foto", "error");
+    } finally {
+      setSubiendoPerfil(false);
+    }
   };
 
   const handleUpdateProfile = async () => {
@@ -75,11 +105,10 @@ export default function App() {
       await updateProfile(user, { displayName });
       Swal.fire({
         title: "¡Listo!",
-        text: "Perfil actualizado",
+        text: "Apodo actualizado",
         icon: "success",
         timer: 1500,
         showConfirmButton: false,
-        customClass: { popup: "rounded-[32px]" },
       });
     } catch (error) {
       Swal.fire("Error", "No se pudo actualizar", "error");
@@ -88,12 +117,21 @@ export default function App() {
     }
   };
 
+  const dispararRecuerdoAzar = () => {
+    setActiveTab("gallery");
+    setIsMobileMenuOpen(false);
+    setTimeout(() => {
+      window.dispatchEvent(new Event("magicMemory"));
+    }, 200);
+  };
+
   if (loading)
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#fafafb]">
         <Heart className="animate-pulse text-pink-500" size={48} />
       </div>
     );
+
   if (!user) return <Login />;
 
   const menuItems = [
@@ -108,18 +146,16 @@ export default function App() {
 
   return (
     <div className="flex h-screen w-full bg-[#fafafb] text-slate-900 font-sans overflow-hidden">
-      {/* SIDEBAR PC (FIJO) */}
-      <aside className="hidden md:flex flex-col w-72 min-w-[288px] bg-white border-r border-slate-100 p-8 h-full shadow-sm z-50">
+      {/* SIDEBAR DESKTOP */}
+      <aside className="hidden md:flex flex-col w-72 bg-white border-r border-slate-100 p-8 h-full z-50">
         <div className="flex items-center gap-3 mb-12">
-          <div className="w-10 h-10 min-w-[40px] bg-pink-500 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-pink-200">
+          <div className="w-10 h-10 bg-pink-500 rounded-2xl flex items-center justify-center text-white shadow-lg">
             <Heart size={20} fill="currentColor" />
           </div>
-          <h1 className="text-xl font-serif italic font-bold whitespace-nowrap">
-            Nuestro Baúl
-          </h1>
+          <h1 className="text-xl font-serif italic font-bold">Nuestro Baúl</h1>
         </div>
 
-        <nav className="flex-1 space-y-2 overflow-y-auto">
+        <nav className="flex-1 space-y-2">
           {menuItems.map((item) => (
             <button
               key={item.id}
@@ -130,20 +166,18 @@ export default function App() {
                   : "text-slate-400 hover:bg-slate-50"
               }`}
             >
-              {item.icon}{" "}
-              <span className="whitespace-nowrap">{item.label}</span>
+              {item.icon} <span>{item.label}</span>
             </button>
           ))}
-
           <button
             onClick={dispararRecuerdoAzar}
-            className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl font-bold text-pink-500 bg-pink-50 hover:bg-pink-100 transition-all border border-pink-100 mt-6 group"
+            className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl font-bold text-pink-500 bg-pink-50 mt-6 group border border-pink-100"
           >
             <Sparkles
               size={20}
               className="group-hover:rotate-12 transition-transform"
             />
-            <span className="whitespace-nowrap">Recuerdo Aleatorio</span>
+            <span>Recuerdo Aleatorio</span>
           </button>
         </nav>
 
@@ -151,12 +185,11 @@ export default function App() {
           onClick={handleLogout}
           className="mt-auto flex items-center gap-4 px-4 py-4 text-red-400 font-bold hover:bg-red-50 rounded-2xl transition-all"
         >
-          <LogOut size={20} />{" "}
-          <span className="whitespace-nowrap">Cerrar Sesión</span>
+          <LogOut size={20} /> <span>Cerrar Sesión</span>
         </button>
       </aside>
 
-      {/* BOTÓN MÓVIL */}
+      {/* BOTÓN MENÚ MÓVIL */}
       <button
         className="md:hidden fixed top-6 right-6 z-[60] bg-white p-3 rounded-2xl shadow-xl border border-slate-100"
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -164,8 +197,8 @@ export default function App() {
         {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
-      {/* CONTENIDO PRINCIPAL (CON SCROLL) */}
-      <main className="flex-1 h-full overflow-y-auto overflow-x-hidden scroll-smooth">
+      {/* CONTENIDO PRINCIPAL */}
+      <main className="flex-1 h-full overflow-y-auto scroll-smooth">
         <div className="max-w-6xl mx-auto p-6 md:p-12 lg:p-16">
           <AnimatePresence mode="wait">
             <motion.div
@@ -191,24 +224,45 @@ export default function App() {
               )}
 
               {activeTab === "profile" && (
-                /* ... tu código de perfil igual ... */
                 <div className="max-w-xl mx-auto pt-10">
-                  {/* Bloque de perfil que ya tienes */}
                   <div className="bg-white rounded-[40px] p-8 md:p-12 shadow-sm border border-slate-100 text-center">
                     <div className="relative w-32 h-32 mx-auto mb-6">
-                      <img
-                        src={
-                          user.photoURL ||
-                          `https://ui-avatars.com/api/?name=${
-                            user.displayName || user.email
-                          }&background=fce7f3&color=ec4899`
-                        }
-                        className="w-full h-full rounded-[40px] object-cover border-4 border-white shadow-xl"
+                      <div className="relative w-full h-full">
+                        <img
+                          src={
+                            user.photoURL ||
+                            `https://ui-avatars.com/api/?name=${
+                              user.displayName || user.email
+                            }&background=fce7f3&color=ec4899`
+                          }
+                          className={`w-full h-full rounded-[40px] object-cover border-4 border-white shadow-xl ${
+                            subiendoPerfil ? "opacity-30" : "opacity-100"
+                          }`}
+                        />
+                        {subiendoPerfil && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <Loader2 className="animate-spin text-pink-500" />
+                          </div>
+                        )}
+                      </div>
+
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handlePhotoChange}
+                        accept="image/*"
+                        className="hidden"
                       />
-                      <button className="absolute -bottom-2 -right-2 bg-slate-900 text-white p-3 rounded-2xl shadow-lg hover:scale-110 transition-transform">
+
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        disabled={subiendoPerfil}
+                        className="absolute -bottom-2 -right-2 bg-slate-900 text-white p-3 rounded-2xl shadow-lg hover:scale-110 transition-transform disabled:opacity-50"
+                      >
                         <Camera size={20} />
                       </button>
                     </div>
+
                     <div className="space-y-6 text-left">
                       <div className="flex flex-col gap-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
@@ -242,7 +296,7 @@ export default function App() {
         </div>
       </main>
 
-      {/* MENÚ MÓVIL OVERLAY (Mismo código que tenías) */}
+      {/* OVERLAY MENÚ MÓVIL */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <>
@@ -259,7 +313,6 @@ export default function App() {
               exit={{ x: "-100%" }}
               className="fixed inset-y-0 left-0 w-80 bg-white z-50 p-10 flex flex-col md:hidden"
             >
-              {/* Contenido del menú móvil */}
               <div className="flex items-center gap-3 mb-16">
                 <Heart
                   className="text-pink-500"
@@ -270,7 +323,7 @@ export default function App() {
                   Nuestro Baúl
                 </h1>
               </div>
-              <nav className="flex-1 space-y-4">
+              <nav className="flex-1 space-y-6">
                 {menuItems.map((item) => (
                   <button
                     key={item.id}
@@ -285,19 +338,7 @@ export default function App() {
                     {item.icon} {item.label}
                   </button>
                 ))}
-                <button
-                  onClick={dispararRecuerdoAzar}
-                  className="w-full flex items-center gap-6 text-2xl font-serif italic text-pink-500 pt-4"
-                >
-                  <Sparkles size={24} /> Recuerdo Aleatorio
-                </button>
               </nav>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-4 py-6 text-red-400 font-bold border-t w-full"
-              >
-                <LogOut size={20} /> Cerrar Sesión
-              </button>
             </motion.div>
           </>
         )}
