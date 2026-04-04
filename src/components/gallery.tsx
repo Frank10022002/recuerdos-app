@@ -277,11 +277,12 @@ export const Gallery: React.FC = () => {
                                 {m.tipo === "video" ? (
                                   <video
                                     src={m.url}
-                                    poster={m.url.replace(".mp4", ".jpg")}
                                     className="w-full h-full object-cover"
+                                    poster={m.url.replace(/\.[^/.]+$/, ".jpg")}
                                     preload="metadata"
                                     playsInline
                                     muted
+                                    loop
                                   />
                                 ) : (
                                   <img
