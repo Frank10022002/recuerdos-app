@@ -323,6 +323,7 @@ export default function App() {
                   Nuestro Baúl
                 </h1>
               </div>
+
               <nav className="flex-1 space-y-6">
                 {menuItems.map((item) => (
                   <button
@@ -338,7 +339,25 @@ export default function App() {
                     {item.icon} {item.label}
                   </button>
                 ))}
+
+                <button
+                  onClick={dispararRecuerdoAzar}
+                  className="w-full flex items-center gap-6 text-2xl font-serif italic text-pink-500 pt-4"
+                >
+                  <Sparkles size={24} /> Recuerdo Aleatorio
+                </button>
               </nav>
+
+              {/* BOTÓN CERRAR SESIÓN CORREGIDO */}
+              <div className="mt-auto pt-6 border-t border-slate-100">
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-4 py-4 text-red-400 font-bold w-full"
+                >
+                  <LogOut size={20} />
+                  <span className="text-lg">Cerrar Sesión</span>
+                </button>
+              </div>
             </motion.div>
           </>
         )}
