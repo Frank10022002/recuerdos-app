@@ -71,11 +71,11 @@ export default function App() {
     setSubiendoPerfil(true);
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("upload_preset", "tu_preset_aqui"); // <--- TU PRESET AQUÍ
+    formData.append("upload_preset", "baul_recuerdos"); // <--- YA PUSE TU PRESET
 
     try {
       const res = await fetch(
-        "https://api.cloudinary.com/v1_1/tu_cloud_name/image/upload", // <--- TU CLOUD_NAME AQUÍ
+        "https://api.cloudinary.com/v1_1/duq6yy1su/image/upload", // <--- YA PUSE TU CLOUD_NAME
         { method: "POST", body: formData }
       );
       const data = await res.json();
@@ -84,7 +84,7 @@ export default function App() {
         // 1. Actualizar en Firebase
         await updateProfile(user, { photoURL: data.secure_url });
 
-        // 2. Actualizar estado local para que la imagen cambie YA
+        // 2. Actualizar estado local para que la imagen cambie al instante
         setUser({
           ...user,
           photoURL: data.secure_url,
@@ -99,6 +99,7 @@ export default function App() {
         });
       }
     } catch (error) {
+      console.error(error);
       Swal.fire("Error", "No se pudo subir la foto", "error");
     } finally {
       setSubiendoPerfil(false);
