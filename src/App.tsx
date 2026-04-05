@@ -35,7 +35,6 @@ export default function App() {
   const [subiendoPerfil, setSubiendoPerfil] = useState(false);
   const [displayName, setDisplayName] = useState("");
 
-  // Referencia para abrir el selector de archivos
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -64,6 +63,7 @@ export default function App() {
     });
   };
 
+  // FUNCIÓN CORREGIDA PARA ACTUALIZACIÓN INMEDIATA
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
@@ -71,25 +71,32 @@ export default function App() {
     setSubiendoPerfil(true);
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("upload_preset", "tu_preset_aqui"); // CAMBIA ESTO
+    formData.append("upload_preset", "tu_preset_aqui"); // <--- TU PRESET AQUÍ
 
     try {
       const res = await fetch(
-        "https://api.cloudinary.com/v1_1/tu_cloud_name/image/upload", // CAMBIA ESTO
+        "https://api.cloudinary.com/v1_1/tu_cloud_name/image/upload", // <--- TU CLOUD_NAME AQUÍ
         { method: "POST", body: formData }
       );
       const data = await res.json();
 
       if (data.secure_url) {
+        // 1. Actualizar en Firebase
         await updateProfile(user, { photoURL: data.secure_url });
+
+        // 2. Actualizar estado local para que la imagen cambie YA
+        setUser({
+          ...user,
+          photoURL: data.secure_url,
+        } as User);
+
         Swal.fire({
           title: "¡Foto actualizada!",
           icon: "success",
           timer: 1500,
           showConfirmButton: false,
+          customClass: { popup: "rounded-[32px]" },
         });
-        // Recargamos para que Firebase refresque el objeto user
-        window.location.reload();
       }
     } catch (error) {
       Swal.fire("Error", "No se pudo subir la foto", "error");
@@ -109,6 +116,7 @@ export default function App() {
         icon: "success",
         timer: 1500,
         showConfirmButton: false,
+        customClass: { popup: "rounded-[32px]" },
       });
     } catch (error) {
       Swal.fire("Error", "No se pudo actualizar", "error");
@@ -146,7 +154,7 @@ export default function App() {
 
   return (
     <div className="flex h-screen w-full bg-[#fafafb] text-slate-900 font-sans overflow-hidden">
-      {/* SIDEBAR DESKTOP */}
+      {/* SIDEBAR PC */}
       <aside className="hidden md:flex flex-col w-72 bg-white border-r border-slate-100 p-8 h-full z-50">
         <div className="flex items-center gap-3 mb-12">
           <div className="w-10 h-10 bg-pink-500 rounded-2xl flex items-center justify-center text-white shadow-lg">
@@ -189,7 +197,7 @@ export default function App() {
         </button>
       </aside>
 
-      {/* BOTÓN MENÚ MÓVIL */}
+      {/* BOTÓN MÓVIL */}
       <button
         className="md:hidden fixed top-6 right-6 z-[60] bg-white p-3 rounded-2xl shadow-xl border border-slate-100"
         onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -245,7 +253,6 @@ export default function App() {
                           </div>
                         )}
                       </div>
-
                       <input
                         type="file"
                         ref={fileInputRef}
@@ -253,7 +260,6 @@ export default function App() {
                         accept="image/*"
                         className="hidden"
                       />
-
                       <button
                         onClick={() => fileInputRef.current?.click()}
                         disabled={subiendoPerfil}
@@ -296,7 +302,7 @@ export default function App() {
         </div>
       </main>
 
-      {/* OVERLAY MENÚ MÓVIL */}
+      {/* MENÚ MÓVIL */}
       <AnimatePresence>
         {isMobileMenuOpen && (
           <>
@@ -323,7 +329,6 @@ export default function App() {
                   Nuestro Baúl
                 </h1>
               </div>
-
               <nav className="flex-1 space-y-6">
                 {menuItems.map((item) => (
                   <button
@@ -339,7 +344,6 @@ export default function App() {
                     {item.icon} {item.label}
                   </button>
                 ))}
-
                 <button
                   onClick={dispararRecuerdoAzar}
                   className="w-full flex items-center gap-6 text-2xl font-serif italic text-pink-500 pt-4"
@@ -347,14 +351,12 @@ export default function App() {
                   <Sparkles size={24} /> Recuerdo Aleatorio
                 </button>
               </nav>
-
-              {/* BOTÓN CERRAR SESIÓN CORREGIDO */}
               <div className="mt-auto pt-6 border-t border-slate-100">
                 <button
                   onClick={handleLogout}
                   className="flex items-center gap-4 py-4 text-red-400 font-bold w-full"
                 >
-                  <LogOut size={20} />
+                  <LogOut size={20} />{" "}
                   <span className="text-lg">Cerrar Sesión</span>
                 </button>
               </div>

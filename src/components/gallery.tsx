@@ -42,6 +42,7 @@ export const Gallery: React.FC = () => {
     { id: "Momentos Random", icon: "🎲" },
   ];
 
+  // 1. CARGAR MEMORIAS
   useEffect(() => {
     const q = query(collection(db, "memorias"), orderBy("fecha", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -55,6 +56,30 @@ export const Gallery: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
+  // 2. LÓGICA DEL BOTÓN "ATRÁS" DEL CELULAR PARA EL MODAL
+  useEffect(() => {
+    const handleBack = () => {
+      if (selected) {
+        setSelected(null);
+      }
+    };
+
+    if (selected) {
+      // Agregamos un estado al historial para que el botón atrás tenga qué "retroceder"
+      window.history.pushState({ modalOpen: true }, "");
+      window.addEventListener("popstate", handleBack);
+    }
+
+    return () => {
+      window.removeEventListener("popstate", handleBack);
+      // Si el modal se cierra por clic en la X, limpiamos el historial sobrante
+      if (!selected && window.history.state?.modalOpen) {
+        window.history.back();
+      }
+    };
+  }, [selected]);
+
+  // 3. RECUERDO AL AZAR (EVENTO MAGIC)
   useEffect(() => {
     const abrirAzar = () => {
       if (memorias.length > 0) {
@@ -72,10 +97,8 @@ export const Gallery: React.FC = () => {
     return () => window.removeEventListener("magicMemory", abrirAzar);
   }, [memorias]);
 
-  // FUNCIÓN AUXILIAR PARA VALIDAR FECHAS (La clave de la solución)
   const parsearFechaSegura = (fechaStr: string) => {
     if (!fechaStr) return new Date();
-    // Reemplazamos guiones por barras y quitamos la T para máxima compatibilidad
     const limpio = fechaStr.replace(/-/g, "/").replace("T", " ");
     const d = new Date(limpio);
     return isNaN(d.getTime()) ? new Date() : d;
@@ -104,7 +127,6 @@ export const Gallery: React.FC = () => {
           <textarea id="swal-desc" class="swal2-textarea" style="margin: 0; width: 100%; border-radius: 15px; font-style: italic;">${
             m.descripcion
           }</textarea>
-          
           <label style="font-size: 10px; font-weight: 900; text-transform: uppercase; color: #94a3b8;">Categoría</label>
           <select id="swal-cat" class="swal2-input" style="margin: 0; width: 100%; border-radius: 15px;">
             ${categoriasFiltro
@@ -117,7 +139,6 @@ export const Gallery: React.FC = () => {
               )
               .join("")}
           </select>
-
           <label style="font-size: 10px; font-weight: 900; text-transform: uppercase; color: #94a3b8;">Fecha</label>
           <input id="swal-date" type="date" class="swal2-input" style="margin: 0; width: 100%; border-radius: 15px;" value="${
             m.fecha.split("T")[0]
@@ -161,13 +182,11 @@ export const Gallery: React.FC = () => {
       filtro === "Todos"
         ? memorias
         : memorias.filter((m) => m.categoria === filtro);
-
     filtradas.forEach((m) => {
       const d = parsearFechaSegura(m.fecha);
       const anio = d.getFullYear();
       const mes = d.toLocaleString("es-ES", { month: "long" }).toUpperCase();
       const dia = d.getDate();
-
       if (!almanaque[anio]) almanaque[anio] = {};
       if (!almanaque[anio][mes]) almanaque[anio][mes] = {};
       if (!almanaque[anio][mes][dia]) {
@@ -187,12 +206,11 @@ export const Gallery: React.FC = () => {
         Abriendo el baúl...
       </div>
     );
-
   const datosCrono = obtenerAlmanaque();
 
   return (
     <div className="w-full">
-      {/* BARRA DE FILTROS */}
+      {/* FILTROS */}
       <div className="flex items-center gap-4 mb-10 sticky top-0 z-40 bg-[#fafafb]/80 backdrop-blur-md py-4 overflow-x-auto no-scrollbar">
         <div className="flex items-center gap-2 mr-2 text-slate-400 shrink-0">
           <Filter size={16} />
@@ -217,7 +235,7 @@ export const Gallery: React.FC = () => {
         </div>
       </div>
 
-      {/* GALERÍA POR AÑOS */}
+      {/* GALERÍA */}
       {Object.keys(datosCrono)
         .sort((a, b) => Number(b) - Number(a))
         .map((anio) => (
@@ -248,7 +266,6 @@ export const Gallery: React.FC = () => {
                             className="group relative bg-white rounded-[40px] overflow-hidden shadow-xl shadow-slate-100 border border-white"
                             whileHover={{ y: -8 }}
                           >
-                            {/* AUTOR */}
                             <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-white/80 backdrop-blur-md px-2.5 py-1.5 rounded-full shadow-sm border border-white/40">
                               <img
                                 src={
@@ -262,8 +279,6 @@ export const Gallery: React.FC = () => {
                                 {m.autor}
                               </span>
                             </div>
-
-                            {/* EDITAR */}
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -273,7 +288,6 @@ export const Gallery: React.FC = () => {
                             >
                               <Pencil size={14} />
                             </button>
-
                             <div
                               onClick={() => setSelected(m)}
                               className="cursor-pointer"
@@ -340,7 +354,6 @@ export const Gallery: React.FC = () => {
               >
                 <X size={24} />
               </button>
-
               <div className="w-full md:w-[65%] bg-black flex items-center justify-center h-[45vh] md:h-auto overflow-hidden">
                 {selected.tipo === "video" ? (
                   <video
@@ -359,7 +372,6 @@ export const Gallery: React.FC = () => {
                   />
                 )}
               </div>
-
               <div className="w-full md:w-[35%] p-8 md:p-12 flex flex-col gap-6 bg-white overflow-y-auto">
                 <div>
                   <span className="bg-pink-100 text-pink-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">
