@@ -68,35 +68,25 @@ export default function App() {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    // 1. Validar tamaño (Opcional pero recomendado para evitar errores)
-    if (file.size > 5 * 1024 * 1024) {
-      Swal.fire(
-        "¡Foto muy pesada!",
-        "Intenta con una de menos de 5MB",
-        "warning"
-      );
-      return;
-    }
-
     setSubiendoPerfil(true);
     const formData = new FormData();
     formData.append("file", file);
     formData.append("upload_preset", "baul_recuerdos");
 
     try {
-      // 2. Usamos la ruta genérica de upload
+      // IMPORTANTE: Usamos /auto/upload que es el más flexible para presets Unsigned
       const res = await fetch(
-        "https://api.cloudinary.com/v1_1/duq6yy1su/image/upload",
+        "https://api.cloudinary.com/v1_1/duq6yy1su/auto/upload",
         { method: "POST", body: formData }
       );
 
       const data = await res.json();
 
       if (data.secure_url) {
-        // 3. Actualizamos Firebase con el link nuevo
+        // Actualizamos en Firebase
         await updateProfile(user, { photoURL: data.secure_url });
 
-        // 4. Actualizamos el estado local
+        // Actualizamos el estado local para que la foto cambie de una vez
         setUser({
           ...user,
           photoURL: data.secure_url,
@@ -107,21 +97,23 @@ export default function App() {
           icon: "success",
           timer: 1500,
           showConfirmButton: false,
+          customClass: { popup: "rounded-[32px]" },
         });
       } else {
-        // Si no hay secure_url, Cloudinary nos rechazó por algo
-        console.error("Cloudinary dice:", data);
-        throw new Error("No se recibió la URL de la imagen");
+        console.error("Respuesta Cloudinary:", data);
+        throw new Error(data.error?.message || "Error en la subida");
       }
     } catch (error) {
-      console.error("Error completo:", error);
-      Swal.fire(
-        "Error",
-        "Cloudinary rechazó la imagen. Intenta con otra foto.",
-        "error"
-      );
+      console.error(error);
+      Swal.fire({
+        title: "Error",
+        text: "No se pudo subir la foto. Revisa la consola (F12).",
+        icon: "error",
+        customClass: { popup: "rounded-[32px]" },
+      });
     } finally {
       setSubiendoPerfil(false);
+      // Limpiamos el input para poder elegir la misma foto si falló
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
@@ -135,7 +127,7 @@ export default function App() {
         title: "¡Listo!",
         text: "Apodo actualizado",
         icon: "success",
-        timer: 1500,
+        timer: 1250,
         showConfirmButton: false,
         customClass: { popup: "rounded-[32px]" },
       });
