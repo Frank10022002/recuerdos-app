@@ -71,20 +71,29 @@ export default function App() {
     setSubiendoPerfil(true);
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("upload_preset", "baul_recuerdos"); // <--- YA PUSE TU PRESET
+    formData.append("upload_preset", "baul_recuerdos");
+
+    // TRUCO: Le damos un nombre público único basado en el tiempo
+    // Esto evita que Cloudinary bloquee subidas seguidas
+    formData.append("public_id", `perfil_${user.uid}_${Date.now()}`);
 
     try {
       const res = await fetch(
-        "https://api.cloudinary.com/v1_1/duq6yy1su/image/upload", // <--- YA PUSE TU CLOUD_NAME
+        "https://api.cloudinary.com/v1_1/duq6yy1su/image/upload",
         { method: "POST", body: formData }
       );
+
       const data = await res.json();
 
+      // Si Cloudinary responde con error, lo vemos en la consola
+      if (data.error) {
+        console.error("Error de Cloudinary:", data.error.message);
+        throw new Error(data.error.message);
+      }
+
       if (data.secure_url) {
-        // 1. Actualizar en Firebase
         await updateProfile(user, { photoURL: data.secure_url });
 
-        // 2. Actualizar estado local para que la imagen cambie al instante
         setUser({
           ...user,
           photoURL: data.secure_url,
@@ -95,14 +104,19 @@ export default function App() {
           icon: "success",
           timer: 1500,
           showConfirmButton: false,
-          customClass: { popup: "rounded-[32px]" },
         });
       }
     } catch (error) {
       console.error(error);
-      Swal.fire("Error", "No se pudo subir la foto", "error");
+      Swal.fire(
+        "Error",
+        "No se pudo subir la foto. Intenta en 5 segundos.",
+        "error"
+      );
     } finally {
       setSubiendoPerfil(false);
+      // Limpiamos el input para que puedas elegir la misma foto si quieres
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
