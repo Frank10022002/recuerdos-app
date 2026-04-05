@@ -68,16 +68,23 @@ export default function App() {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
+    // 1. Validar tamaño (Opcional pero recomendado para evitar errores)
+    if (file.size > 5 * 1024 * 1024) {
+      Swal.fire(
+        "¡Foto muy pesada!",
+        "Intenta con una de menos de 5MB",
+        "warning"
+      );
+      return;
+    }
+
     setSubiendoPerfil(true);
     const formData = new FormData();
     formData.append("file", file);
     formData.append("upload_preset", "baul_recuerdos");
 
-    // TRUCO: Le damos un nombre público único basado en el tiempo
-    // Esto evita que Cloudinary bloquee subidas seguidas
-    formData.append("public_id", `perfil_${user.uid}_${Date.now()}`);
-
     try {
+      // 2. Usamos la ruta genérica de upload
       const res = await fetch(
         "https://api.cloudinary.com/v1_1/duq6yy1su/image/upload",
         { method: "POST", body: formData }
@@ -85,15 +92,11 @@ export default function App() {
 
       const data = await res.json();
 
-      // Si Cloudinary responde con error, lo vemos en la consola
-      if (data.error) {
-        console.error("Error de Cloudinary:", data.error.message);
-        throw new Error(data.error.message);
-      }
-
       if (data.secure_url) {
+        // 3. Actualizamos Firebase con el link nuevo
         await updateProfile(user, { photoURL: data.secure_url });
 
+        // 4. Actualizamos el estado local
         setUser({
           ...user,
           photoURL: data.secure_url,
@@ -105,17 +108,20 @@ export default function App() {
           timer: 1500,
           showConfirmButton: false,
         });
+      } else {
+        // Si no hay secure_url, Cloudinary nos rechazó por algo
+        console.error("Cloudinary dice:", data);
+        throw new Error("No se recibió la URL de la imagen");
       }
     } catch (error) {
-      console.error(error);
+      console.error("Error completo:", error);
       Swal.fire(
         "Error",
-        "No se pudo subir la foto. Intenta en 5 segundos.",
+        "Cloudinary rechazó la imagen. Intenta con otra foto.",
         "error"
       );
     } finally {
       setSubiendoPerfil(false);
-      // Limpiamos el input para que puedas elegir la misma foto si quieres
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
