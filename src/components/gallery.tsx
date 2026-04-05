@@ -40,6 +40,8 @@ export const Gallery: React.FC = () => {
     { id: "Comida", icon: "🍕" },
     { id: "Recuerdo", icon: "📸" },
     { id: "Momentos Random", icon: "🎲" },
+    { id: "Gatos", icon: "🐱" },
+    { id: "Perros", icon: "🐶" },
   ];
 
   // 1. CARGAR MEMORIAS

@@ -74,7 +74,6 @@ export default function App() {
     formData.append("upload_preset", "baul_recuerdos");
 
     try {
-      // IMPORTANTE: Usamos /auto/upload que es el más flexible para presets Unsigned
       const res = await fetch(
         "https://api.cloudinary.com/v1_1/duq6yy1su/auto/upload",
         { method: "POST", body: formData }
@@ -83,14 +82,14 @@ export default function App() {
       const data = await res.json();
 
       if (data.secure_url) {
-        // Actualizamos en Firebase
+        // 1. Actualizamos en Firebase
         await updateProfile(user, { photoURL: data.secure_url });
 
-        // Actualizamos el estado local para que la foto cambie de una vez
-        setUser({
-          ...user,
-          photoURL: data.secure_url,
-        } as User);
+        // 2. ¡ESTO ES LO IMPORTANTE!: Refrescamos el usuario real
+        // En lugar de hacer una copia {...user}, le pedimos a Firebase que se actualice solo
+        await user.reload();
+        const updatedUser = auth.currentUser;
+        setUser(updatedUser);
 
         Swal.fire({
           title: "¡Foto actualizada!",
@@ -99,21 +98,12 @@ export default function App() {
           showConfirmButton: false,
           customClass: { popup: "rounded-[32px]" },
         });
-      } else {
-        console.error("Respuesta Cloudinary:", data);
-        throw new Error(data.error?.message || "Error en la subida");
       }
     } catch (error) {
       console.error(error);
-      Swal.fire({
-        title: "Error",
-        text: "No se pudo subir la foto. Revisa la consola (F12).",
-        icon: "error",
-        customClass: { popup: "rounded-[32px]" },
-      });
+      Swal.fire("Error", "Ocurrió un problema al subir la foto", "error");
     } finally {
       setSubiendoPerfil(false);
-      // Limpiamos el input para poder elegir la misma foto si falló
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };

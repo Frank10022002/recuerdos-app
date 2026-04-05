@@ -25,6 +25,8 @@ export const UploadMemory: React.FC<UploadMemoryProps> = ({ onComplete }) => {
     { id: "Comida", icon: "🍕" },
     { id: "Recuerdo", icon: "📸" },
     { id: "Momentos Random", icon: "🎲" },
+    { id: "Gatos", icon: "🐱" },
+    { id: "Perros", icon: "🐶" },
   ];
 
   const handleUpload = async (e: React.FormEvent) => {
