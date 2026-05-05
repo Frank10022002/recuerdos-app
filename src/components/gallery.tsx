@@ -20,7 +20,6 @@ import {
   CalendarDays,
   Trash2,
   Filter,
-  Pencil,
   ChevronLeft,
   ChevronRight,
   Heart,
@@ -37,11 +36,9 @@ interface Memoria {
   id: string;
   urls: string[];
   descripcion: string;
-  tipo: "foto" | "video";
   fecha: string;
-  autor?: string;
-  autorFoto?: string;
-  categoria?: string;
+  autor: string;
+  categoria: string;
   reacciones?: Reaccion[];
 }
 
@@ -49,16 +46,14 @@ export const Gallery: React.FC = () => {
   const [memorias, setMemorias] = useState<Memoria[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Memoria | null>(null);
-  const [currentImgIndex, setCurrentImgIndex] = useState(0);
+  const [idx, setIdx] = useState(0);
   const [filtro, setFiltro] = useState("Todos");
-
-  const categorias = ["Todos", "Cita", "Viaje", "Comida", "Gatos", "Recuerdo"];
 
   useEffect(() => {
     const q = query(collection(db, "memorias"), orderBy("fecha", "desc"));
-    return onSnapshot(q, (snapshot) => {
+    return onSnapshot(q, (snap) => {
       setMemorias(
-        snapshot.docs.map((d) => ({
+        snap.docs.map((d) => ({
           id: d.id,
           ...d.data(),
           urls: d.data().urls || [d.data().url],
@@ -70,19 +65,15 @@ export const Gallery: React.FC = () => {
 
   const handleReaccionar = async (mId: string, emoji: string) => {
     if (!auth.currentUser) return;
-    const user = auth.currentUser;
     const m = memorias.find((mem) => mem.id === mId);
     if (!m) return;
-    const existe = m.reacciones?.find((r) => r.uid === user.uid);
     const ref = doc(db, "memorias", mId);
-    if (existe) {
-      await updateDoc(ref, { reacciones: arrayRemove(existe) });
-      if (existe.emoji === emoji) return;
-    }
+    const existe = m.reacciones?.find((r) => r.uid === auth.currentUser?.uid);
+    if (existe) await updateDoc(ref, { reacciones: arrayRemove(existe) });
     await updateDoc(ref, {
       reacciones: arrayUnion({
-        uid: user.uid,
-        nombre: user.displayName || "Usuario",
+        uid: auth.currentUser.uid,
+        nombre: auth.currentUser.displayName,
         emoji,
       }),
     });
@@ -90,26 +81,14 @@ export const Gallery: React.FC = () => {
       confetti({ particleCount: 100, spread: 70, origin: { y: 0.8 } });
   };
 
-  const eliminar = async (id: string) => {
-    const res = await Swal.fire({
-      title: "¿Eliminar?",
-      icon: "warning",
-      showCancelButton: true,
-    });
-    if (res.isConfirmed) {
-      await deleteDoc(doc(db, "memorias", id));
-      setSelected(null);
-    }
-  };
-
-  const almanaque = () => {
+  const obtenerAlmanaque = () => {
     const res: any = {};
     const filtradas =
       filtro === "Todos"
         ? memorias
         : memorias.filter((m) => m.categoria === filtro);
     filtradas.forEach((m) => {
-      const d = new Date(m.fecha.replace(/-/g, "/").replace("T", " "));
+      const d = new Date(m.fecha);
       const a = d.getFullYear(),
         mes = d.toLocaleString("es-ES", { month: "long" }).toUpperCase(),
         dia = d.getDate();
@@ -128,22 +107,21 @@ export const Gallery: React.FC = () => {
   if (loading)
     return (
       <div className="text-center py-20 text-slate-400 italic">
-        Cargando baúl...
+        Abriendo el baúl...
       </div>
     );
-  const datos = almanaque();
+  const almanaque = obtenerAlmanaque();
 
   return (
     <div className="w-full">
-      <div className="flex gap-3 mb-10 overflow-x-auto py-2 no-scrollbar items-center">
-        <Filter size={14} className="text-slate-300" />
-        {categorias.map((c) => (
+      <div className="flex gap-4 mb-10 overflow-x-auto py-2 no-scrollbar">
+        {["Todos", "Cita", "Viaje", "Comida", "Momentos"].map((c) => (
           <button
             key={c}
             onClick={() => setFiltro(c)}
-            className={`px-4 py-2 rounded-full text-[10px] font-black border transition-all ${
+            className={`px-6 py-2.5 rounded-full text-[10px] font-black uppercase border transition-all ${
               filtro === c
-                ? "bg-slate-900 text-white shadow-lg"
+                ? "bg-slate-900 text-white shadow-xl"
                 : "bg-white text-slate-400 border-slate-100"
             }`}
           >
@@ -152,41 +130,49 @@ export const Gallery: React.FC = () => {
         ))}
       </div>
 
-      {Object.keys(datos)
+      {Object.keys(almanaque)
         .sort((a, b) => Number(b) - Number(a))
-        .map((a) => (
-          <div key={a} className="mt-10">
-            <h2 className="text-6xl font-black text-slate-100 mb-6">{a}</h2>
-            {Object.keys(datos[a]).map((m) => (
-              <div key={m} className="mb-8 pl-6 border-l-2 border-pink-50">
-                <h3 className="text-pink-400 font-bold mb-4 uppercase text-xs tracking-widest">
-                  {m}
+        .map((anio) => (
+          <div key={anio}>
+            <h2 className="text-7xl font-black text-slate-50/50 mb-10 tracking-tighter">
+              {anio}
+            </h2>
+            {Object.keys(almanaque[anio]).map((mes) => (
+              <div key={mes} className="mb-12 pl-8 border-l-2 border-pink-50">
+                <h3 className="text-pink-400 font-bold mb-6 italic uppercase tracking-widest">
+                  {mes}
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {Object.keys(datos[a][m]).map((d) =>
-                    datos[a][m][d].fotos.map((f: Memoria) => (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
+                  {Object.keys(almanaque[anio][mes]).map((dia) =>
+                    almanaque[anio][mes][dia].fotos.map((f: Memoria) => (
                       <motion.div
                         key={f.id}
                         layoutId={f.id}
                         onClick={() => {
                           setSelected(f);
-                          setCurrentImgIndex(0);
+                          setIdx(0);
                         }}
-                        className="bg-white rounded-[35px] overflow-hidden shadow-md cursor-pointer hover:shadow-xl transition-shadow border border-white"
+                        className="bg-white rounded-[40px] overflow-hidden shadow-2xl shadow-slate-100 cursor-pointer hover:scale-[1.02] transition-transform"
                       >
-                        <img
-                          src={f.urls[0]}
-                          className="aspect-[4/5] object-cover w-full"
-                          alt="memoria"
-                        />
-                        <div className="p-4 flex justify-between items-center text-[10px] font-bold text-slate-400">
+                        <div className="relative">
+                          <img
+                            src={f.urls[0]}
+                            className="aspect-[4/5] object-cover w-full"
+                            alt="recuerdo"
+                          />
+                          {f.urls.length > 1 && (
+                            <div className="absolute top-4 right-4 bg-white/80 backdrop-blur-md px-2 py-1 rounded-lg text-[9px] font-bold text-slate-800">
+                              +{f.urls.length - 1}
+                            </div>
+                          )}
+                        </div>
+                        <div className="p-6 text-[10px] font-black text-slate-400 uppercase flex justify-between">
                           <span>
-                            {d} {m}
+                            {dia} {mes}
                           </span>
                           <div className="flex gap-1">
-                            {" "}
-                            {f.urls.length > 1 && <Pencil size={10} />}{" "}
-                            <Clock size={10} />{" "}
+                            <Clock size={12} /> <Heart size={12} />{" "}
+                            {f.reacciones?.length || 0}
                           </div>
                         </div>
                       </motion.div>
@@ -206,87 +192,108 @@ export const Gallery: React.FC = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelected(null)}
-              className="absolute inset-0 bg-slate-900/90 backdrop-blur-sm"
+              className="absolute inset-0 bg-slate-900/90 backdrop-blur-md"
             />
             <motion.div
               layoutId={selected.id}
-              className="relative bg-white w-full max-w-4xl rounded-[40px] overflow-hidden shadow-2xl flex flex-col md:flex-row max-h-[85vh]"
+              className="relative bg-white w-full max-w-5xl rounded-[50px] overflow-hidden shadow-2xl flex flex-col md:flex-row h-[80vh] md:h-auto"
             >
-              <div className="md:w-2/3 bg-black flex items-center relative h-full">
+              <div className="md:w-[65%] bg-black relative flex items-center h-[50%] md:h-auto">
                 <img
-                  src={selected.urls[currentImgIndex]}
+                  src={selected.urls[idx]}
                   className="w-full h-full object-contain"
                   alt="preview"
                 />
                 {selected.urls.length > 1 && (
-                  <div className="absolute inset-x-4 flex justify-between">
+                  <>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setCurrentImgIndex((i) =>
-                          i > 0 ? i - 1 : selected.urls.length - 1
+                        setIdx((prev) =>
+                          prev > 0 ? prev - 1 : selected.urls.length - 1
                         );
                       }}
-                      className="p-2 bg-white/20 rounded-full text-white"
+                      className="absolute left-4 p-2 bg-white/20 rounded-full text-white"
                     >
                       <ChevronLeft />
                     </button>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setCurrentImgIndex((i) =>
-                          i < selected.urls.length - 1 ? i + 1 : 0
+                        setIdx((prev) =>
+                          prev < selected.urls.length - 1 ? prev + 1 : 0
                         );
                       }}
-                      className="p-2 bg-white/20 rounded-full text-white"
+                      className="absolute right-4 p-2 bg-white/20 rounded-full text-white"
                     >
                       <ChevronRight />
                     </button>
-                  </div>
+                  </>
                 )}
               </div>
-              <div className="md:w-1/3 p-8 flex flex-col justify-between">
+              <div className="md:w-[35%] p-10 flex flex-col justify-between bg-white">
                 <div>
-                  <div className="flex justify-between items-center mb-6">
-                    <div className="flex items-center gap-2 text-pink-400 font-bold text-[10px] uppercase">
-                      <CalendarDays size={14} /> {selected.fecha.split("T")[0]}
-                    </div>
+                  <div className="flex justify-between mb-6">
+                    <span className="text-[10px] font-black text-pink-400 uppercase tracking-[0.2em]">
+                      {selected.categoria}
+                    </span>
                     <button
                       onClick={() => setSelected(null)}
-                      className="text-slate-300 hover:text-slate-600"
+                      className="text-slate-300 hover:text-slate-500"
                     >
                       <X />
                     </button>
                   </div>
-                  <p className="text-slate-600 italic text-lg leading-relaxed">
+                  <p className="text-xl font-serif italic text-slate-700 leading-relaxed">
                     "{selected.descripcion}"
                   </p>
                 </div>
-                <div className="border-t pt-6">
+                <div className="border-t pt-8">
                   <div className="flex gap-4 mb-4">
-                    <button onClick={() => handleReaccionar(selected.id, "❤️")}>
-                      <Heart className="text-pink-500 hover:scale-125 transition-transform" />
-                    </button>
-                    <button onClick={() => handleReaccionar(selected.id, "😂")}>
-                      <Laugh className="text-yellow-500 hover:scale-125 transition-transform" />
-                    </button>
-                    <button onClick={() => handleReaccionar(selected.id, "🔥")}>
-                      <Flame className="text-orange-500 hover:scale-125 transition-transform" />
+                    <button
+                      onClick={() => handleReaccionar(selected.id, "❤️")}
+                      className="hover:scale-125 transition-transform"
+                    >
+                      ❤️
                     </button>
                     <button
-                      onClick={() => eliminar(selected.id)}
-                      className="ml-auto text-slate-200 hover:text-red-500"
+                      onClick={() => handleReaccionar(selected.id, "😂")}
+                      className="hover:scale-125 transition-transform"
+                    >
+                      😂
+                    </button>
+                    <button
+                      onClick={() => handleReaccionar(selected.id, "🔥")}
+                      className="hover:scale-125 transition-transform"
+                    >
+                      🔥
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (
+                          (
+                            await Swal.fire({
+                              title: "¿Borrar?",
+                              showCancelButton: true,
+                            })
+                          ).isConfirmed
+                        ) {
+                          await deleteDoc(doc(db, "memorias", selected.id));
+                          setSelected(null);
+                        }
+                      }}
+                      className="ml-auto text-slate-200 hover:text-red-400"
                     >
                       <Trash2 size={20} />
                     </button>
                   </div>
-                  <div className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">
+                  <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">
                     {selected.reacciones?.length
-                      ? `Amor de: ${selected.reacciones
+                      ? `Reacciones de: ${selected.reacciones
                           .map((r) => r.nombre)
                           .join(", ")}`
-                      : "Sin reacciones aún"}
-                  </div>
+                      : "Sé el primero en reaccionar"}
+                  </p>
                 </div>
               </div>
             </motion.div>
