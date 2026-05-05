@@ -33,7 +33,6 @@ interface Reaccion {
   nombre: string;
   emoji: string;
 }
-
 interface Memoria {
   id: string;
   urls: string[];
@@ -53,54 +52,34 @@ export const Gallery: React.FC = () => {
   const [currentImgIndex, setCurrentImgIndex] = useState(0);
   const [filtro, setFiltro] = useState("Todos");
 
-  const categoriasFiltro = [
-    { id: "Todos", icon: "🌈" },
-    { id: "Cita", icon: "🌹" },
-    { id: "Viaje", icon: "✈️" },
-    { id: "Aniversario", icon: "✨" },
-    { id: "Comida", icon: "🍕" },
-    { id: "Recuerdo", icon: "📸" },
-  ];
+  const categorias = ["Todos", "Cita", "Viaje", "Comida", "Gatos", "Recuerdo"];
 
   useEffect(() => {
     const q = query(collection(db, "memorias"), orderBy("fecha", "desc"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const datos = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-        urls: doc.data().urls || [doc.data().url],
-      })) as Memoria[];
-      setMemorias(datos);
+    return onSnapshot(q, (snapshot) => {
+      setMemorias(
+        snapshot.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+          urls: d.data().urls || [d.data().url],
+        })) as Memoria[]
+      );
       setLoading(false);
     });
-    return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    const handleBack = () => {
-      if (selected) setSelected(null);
-    };
-    if (selected) {
-      window.history.pushState({ modalOpen: true }, "");
-      window.addEventListener("popstate", handleBack);
-    }
-    return () => window.removeEventListener("popstate", handleBack);
-  }, [selected]);
-
-  const handleReaccionar = async (memoriaId: string, emoji: string) => {
+  const handleReaccionar = async (mId: string, emoji: string) => {
     if (!auth.currentUser) return;
     const user = auth.currentUser;
-    const memoria = memorias.find((m) => m.id === memoriaId);
-    if (!memoria) return;
-    const reaccionExistente = memoria.reacciones?.find(
-      (r) => r.uid === user.uid
-    );
-    const docRef = doc(db, "memorias", memoriaId);
-    if (reaccionExistente) {
-      await updateDoc(docRef, { reacciones: arrayRemove(reaccionExistente) });
-      if (reaccionExistente.emoji === emoji) return;
+    const m = memorias.find((mem) => mem.id === mId);
+    if (!m) return;
+    const existe = m.reacciones?.find((r) => r.uid === user.uid);
+    const ref = doc(db, "memorias", mId);
+    if (existe) {
+      await updateDoc(ref, { reacciones: arrayRemove(existe) });
+      if (existe.emoji === emoji) return;
     }
-    await updateDoc(docRef, {
+    await updateDoc(ref, {
       reacciones: arrayUnion({
         uid: user.uid,
         nombre: user.displayName || "Usuario",
@@ -111,92 +90,104 @@ export const Gallery: React.FC = () => {
       confetti({ particleCount: 100, spread: 70, origin: { y: 0.8 } });
   };
 
-  const handleDelete = async (id: string) => {
+  const eliminar = async (id: string) => {
     const res = await Swal.fire({
-      title: "¿Borrar?",
+      title: "¿Eliminar?",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: "#ef4444",
     });
-    if (res.isConfirmed) await deleteDoc(doc(db, "memorias", id));
+    if (res.isConfirmed) {
+      await deleteDoc(doc(db, "memorias", id));
+      setSelected(null);
+    }
   };
 
-  const obtenerAlmanaque = () => {
-    const almanaque: any = {};
+  const almanaque = () => {
+    const res: any = {};
     const filtradas =
       filtro === "Todos"
         ? memorias
         : memorias.filter((m) => m.categoria === filtro);
     filtradas.forEach((m) => {
       const d = new Date(m.fecha.replace(/-/g, "/").replace("T", " "));
-      const anio = d.getFullYear(),
+      const a = d.getFullYear(),
         mes = d.toLocaleString("es-ES", { month: "long" }).toUpperCase(),
         dia = d.getDate();
-      if (!almanaque[anio]) almanaque[anio] = {};
-      if (!almanaque[anio][mes]) almanaque[anio][mes] = {};
-      if (!almanaque[anio][mes][dia])
-        almanaque[anio][mes][dia] = {
+      if (!res[a]) res[a] = {};
+      if (!res[a][mes]) res[a][mes] = {};
+      if (!res[a][mes][dia])
+        res[a][mes][dia] = {
           nombre: d.toLocaleString("es-ES", { weekday: "long" }),
           fotos: [],
         };
-      almanaque[anio][mes][dia].fotos.push(m);
+      res[a][mes][dia].fotos.push(m);
     });
-    return almanaque;
+    return res;
   };
 
   if (loading)
     return (
       <div className="text-center py-20 text-slate-400 italic">
-        Abriendo el baúl...
+        Cargando baúl...
       </div>
     );
-  const datosCrono = obtenerAlmanaque();
+  const datos = almanaque();
 
   return (
     <div className="w-full">
-      <div className="flex gap-4 mb-10 overflow-x-auto py-4 no-scrollbar">
-        <Filter size={16} className="text-slate-300" />
-        {categoriasFiltro.map((cat) => (
+      <div className="flex gap-3 mb-10 overflow-x-auto py-2 no-scrollbar items-center">
+        <Filter size={14} className="text-slate-300" />
+        {categorias.map((c) => (
           <button
-            key={cat.id}
-            onClick={() => setFiltro(cat.id)}
-            className={`px-5 py-2 rounded-full text-[10px] font-black border ${
-              filtro === cat.id
-                ? "bg-slate-900 text-white"
+            key={c}
+            onClick={() => setFiltro(c)}
+            className={`px-4 py-2 rounded-full text-[10px] font-black border transition-all ${
+              filtro === c
+                ? "bg-slate-900 text-white shadow-lg"
                 : "bg-white text-slate-400 border-slate-100"
             }`}
           >
-            {cat.icon} {cat.id}
+            {c}
           </button>
         ))}
       </div>
 
-      {Object.keys(datosCrono)
+      {Object.keys(datos)
         .sort((a, b) => Number(b) - Number(a))
-        .map((anio) => (
-          <div key={anio} className="mt-12">
-            <h2 className="text-5xl font-black text-slate-100 mb-8">{anio}</h2>
-            {Object.keys(datosCrono[anio]).map((mes) => (
-              <div key={mes} className="mb-10 pl-6 border-l-2 border-pink-50">
-                <h3 className="text-pink-400 font-bold mb-6 italic">{mes}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  {Object.keys(datosCrono[anio][mes]).map((dia) =>
-                    datosCrono[anio][mes][dia].fotos.map((m: Memoria) => (
+        .map((a) => (
+          <div key={a} className="mt-10">
+            <h2 className="text-6xl font-black text-slate-100 mb-6">{a}</h2>
+            {Object.keys(datos[a]).map((m) => (
+              <div key={m} className="mb-8 pl-6 border-l-2 border-pink-50">
+                <h3 className="text-pink-400 font-bold mb-4 uppercase text-xs tracking-widest">
+                  {m}
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {Object.keys(datos[a][m]).map((d) =>
+                    datos[a][m][d].fotos.map((f: Memoria) => (
                       <motion.div
-                        key={m.id}
-                        layoutId={m.id}
-                        onClick={() => setSelected(m)}
-                        className="bg-white rounded-[40px] overflow-hidden shadow-xl cursor-pointer"
+                        key={f.id}
+                        layoutId={f.id}
+                        onClick={() => {
+                          setSelected(f);
+                          setCurrentImgIndex(0);
+                        }}
+                        className="bg-white rounded-[35px] overflow-hidden shadow-md cursor-pointer hover:shadow-xl transition-shadow border border-white"
                       >
                         <img
-                          src={m.urls[0]}
+                          src={f.urls[0]}
                           className="aspect-[4/5] object-cover w-full"
+                          alt="memoria"
                         />
-                        <div className="p-4 flex justify-between items-center">
-                          <span className="text-[10px] text-slate-400 font-bold uppercase">
-                            {dia} {mes}
+                        <div className="p-4 flex justify-between items-center text-[10px] font-bold text-slate-400">
+                          <span>
+                            {d} {m}
                           </span>
-                          <Clock size={12} className="text-slate-200" />
+                          <div className="flex gap-1">
+                            {" "}
+                            {f.urls.length > 1 && <Pencil size={10} />}{" "}
+                            <Clock size={10} />{" "}
+                          </div>
                         </div>
                       </motion.div>
                     ))
@@ -219,12 +210,13 @@ export const Gallery: React.FC = () => {
             />
             <motion.div
               layoutId={selected.id}
-              className="relative bg-white w-full max-w-4xl rounded-[40px] overflow-hidden shadow-2xl flex flex-col md:flex-row max-h-[90vh]"
+              className="relative bg-white w-full max-w-4xl rounded-[40px] overflow-hidden shadow-2xl flex flex-col md:flex-row max-h-[85vh]"
             >
-              <div className="md:w-2/3 bg-black flex items-center relative">
+              <div className="md:w-2/3 bg-black flex items-center relative h-full">
                 <img
                   src={selected.urls[currentImgIndex]}
-                  className="w-full object-contain"
+                  className="w-full h-full object-contain"
+                  alt="preview"
                 />
                 {selected.urls.length > 1 && (
                   <div className="absolute inset-x-4 flex justify-between">
@@ -253,47 +245,48 @@ export const Gallery: React.FC = () => {
                   </div>
                 )}
               </div>
-              <div className="md:w-1/3 p-8 flex flex-col">
-                <div className="flex justify-between items-start mb-6">
-                  <div className="flex items-center gap-2">
-                    <CalendarDays size={16} className="text-pink-400" />
-                    <span className="text-xs font-bold text-slate-400 uppercase">
-                      {selected.fecha.split("T")[0]}
-                    </span>
+              <div className="md:w-1/3 p-8 flex flex-col justify-between">
+                <div>
+                  <div className="flex justify-between items-center mb-6">
+                    <div className="flex items-center gap-2 text-pink-400 font-bold text-[10px] uppercase">
+                      <CalendarDays size={14} /> {selected.fecha.split("T")[0]}
+                    </div>
+                    <button
+                      onClick={() => setSelected(null)}
+                      className="text-slate-300 hover:text-slate-600"
+                    >
+                      <X />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setSelected(null)}
-                    className="text-slate-300"
-                  >
-                    <X />
-                  </button>
+                  <p className="text-slate-600 italic text-lg leading-relaxed">
+                    "{selected.descripcion}"
+                  </p>
                 </div>
-                <p className="text-slate-600 italic mb-8 flex-1">
-                  "{selected.descripcion}"
-                </p>
-                <div className="flex gap-4 border-t pt-6">
-                  <button onClick={() => handleReaccionar(selected.id, "❤️")}>
-                    <Heart className="text-pink-500" />
-                  </button>
-                  <button onClick={() => handleReaccionar(selected.id, "😂")}>
-                    <Laugh className="text-yellow-500" />
-                  </button>
-                  <button onClick={() => handleReaccionar(selected.id, "🔥")}>
-                    <Flame className="text-orange-500" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(selected.id)}
-                    className="ml-auto text-slate-200 hover:text-red-400"
-                  >
-                    <Trash2 size={20} />
-                  </button>
-                </div>
-                <div className="mt-4 text-[10px] font-bold text-slate-300 uppercase">
-                  {selected.reacciones?.length
-                    ? `Reaccionado por: ${selected.reacciones
-                        .map((r) => r.nombre)
-                        .join(", ")}`
-                    : "Sin reacciones"}
+                <div className="border-t pt-6">
+                  <div className="flex gap-4 mb-4">
+                    <button onClick={() => handleReaccionar(selected.id, "❤️")}>
+                      <Heart className="text-pink-500 hover:scale-125 transition-transform" />
+                    </button>
+                    <button onClick={() => handleReaccionar(selected.id, "😂")}>
+                      <Laugh className="text-yellow-500 hover:scale-125 transition-transform" />
+                    </button>
+                    <button onClick={() => handleReaccionar(selected.id, "🔥")}>
+                      <Flame className="text-orange-500 hover:scale-125 transition-transform" />
+                    </button>
+                    <button
+                      onClick={() => eliminar(selected.id)}
+                      className="ml-auto text-slate-200 hover:text-red-500"
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                  </div>
+                  <div className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">
+                    {selected.reacciones?.length
+                      ? `Amor de: ${selected.reacciones
+                          .map((r) => r.nombre)
+                          .join(", ")}`
+                      : "Sin reacciones aún"}
+                  </div>
                 </div>
               </div>
             </motion.div>
