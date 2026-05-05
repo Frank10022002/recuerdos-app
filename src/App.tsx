@@ -84,9 +84,6 @@ export default function App() {
       if (data.secure_url) {
         // 1. Actualizamos en Firebase
         await updateProfile(user, { photoURL: data.secure_url });
-
-        // 2. ¡ESTO ES LO IMPORTANTE!: Refrescamos el usuario real
-        // En lugar de hacer una copia {...user}, le pedimos a Firebase que se actualice solo
         await user.reload();
         const updatedUser = auth.currentUser;
         setUser(updatedUser);
