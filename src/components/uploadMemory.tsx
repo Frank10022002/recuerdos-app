@@ -126,8 +126,8 @@ export const UploadMemory: React.FC<UploadMemoryProps> = ({ onComplete }) => {
               onClick={() => setCategoria(cat.id)}
               className={`px-4 py-2 rounded-2xl text-xs font-bold border transition-all ${
                 categoria === cat.id
-                  ? "bg-pink-500 text-white border-pink-500"
-                  : "bg-slate-50 text-slate-400"
+                  ? "bg-pink-500 text-white border-pink-500 shadow-lg shadow-pink-100"
+                  : "bg-slate-50 text-slate-400 border-slate-100"
               }`}
             >
               {cat.icon} {cat.id}
@@ -135,10 +135,11 @@ export const UploadMemory: React.FC<UploadMemoryProps> = ({ onComplete }) => {
           ))}
         </div>
 
-        <div className="relative min-h-[120px] border-2 border-dashed border-slate-100 rounded-3xl flex items-center justify-center p-4">
+        <div className="relative min-h-[140px] border-2 border-dashed border-slate-100 rounded-3xl flex items-center justify-center p-4 hover:bg-slate-50 transition-colors">
           <input
             type="file"
             multiple
+            accept="image/*,video/*"
             onChange={handleFileChange}
             className="absolute inset-0 opacity-0 cursor-pointer z-10"
           />
@@ -146,10 +147,17 @@ export const UploadMemory: React.FC<UploadMemoryProps> = ({ onComplete }) => {
             <div className="flex flex-wrap gap-2 justify-center">
               {previews.map((src, i) => (
                 <div key={i} className="relative w-16 h-16 group">
-                  <img
-                    src={src}
-                    className="w-full h-full object-cover rounded-xl border"
-                  />
+                  {files[i]?.type.startsWith("video/") ? (
+                    <video
+                      src={src}
+                      className="w-full h-full object-cover rounded-xl border"
+                    />
+                  ) : (
+                    <img
+                      src={src}
+                      className="w-full h-full object-cover rounded-xl border"
+                    />
+                  )}
                   <button
                     type="button"
                     onClick={() => removeFile(i)}
@@ -164,30 +172,30 @@ export const UploadMemory: React.FC<UploadMemoryProps> = ({ onComplete }) => {
             <div className="text-center">
               <ImagePlus className="mx-auto text-slate-300" />
               <p className="text-[10px] font-bold text-slate-400 mt-1">
-                Añadir fotos/videos
+                Añadir fotos o videos
               </p>
             </div>
           )}
         </div>
 
         <textarea
-          placeholder="La historia..."
+          placeholder="Cuéntame la historia..."
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full p-4 bg-slate-50 rounded-2xl outline-none italic"
+          className="w-full p-4 bg-slate-50 rounded-2xl outline-none italic resize-none"
           rows={3}
         />
 
         <button
           type="submit"
           disabled={uploading || files.length === 0}
-          className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold flex justify-center items-center"
+          className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold flex justify-center items-center shadow-lg shadow-slate-200"
         >
           {uploading ? (
             <Loader2 className="animate-spin" />
           ) : (
             <>
-              <CheckCircle2 size={18} className="mr-2" /> Guardar Momento
+              <CheckCircle2 size={18} className="mr-2" /> Guardar en el Baúl
             </>
           )}
         </button>
