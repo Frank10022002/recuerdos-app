@@ -21,6 +21,7 @@ import {
   Pencil,
   ChevronLeft,
   ChevronRight,
+  Play,
 } from "lucide-react";
 
 // Swiper
@@ -48,16 +49,6 @@ export const Gallery: React.FC = () => {
   const [selected, setSelected] = useState<Memoria | null>(null);
   const [filtro, setFiltro] = useState("Todos");
 
-  const categoriasFiltro = [
-    { id: "Todos", icon: "🌈" },
-    { id: "Cita", icon: "🌹" },
-    { id: "Viaje", icon: "✈️" },
-    { id: "Diversión", icon: "😂" },
-    { id: "Aniversario", icon: "✨" },
-    { id: "Comida", icon: "🍕" },
-    { id: "Recuerdo", icon: "📸" },
-  ];
-
   useEffect(() => {
     const q = query(collection(db, "memorias"), orderBy("fecha", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -69,7 +60,7 @@ export const Gallery: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  // Fix del Historial y 2do click
+  // Fix Historial
   useEffect(() => {
     if (!selected) return;
     window.history.pushState({ modalOpen: true }, "");
@@ -94,53 +85,18 @@ export const Gallery: React.FC = () => {
     return () => window.removeEventListener("magicMemory", abrirAzar);
   }, [memorias]);
 
-  // Edición Completa y Estilizada
   const handleFullEdit = async (m: Memoria) => {
-    const opcionesCategorias = categoriasFiltro
-      .filter((c) => c.id !== "Todos")
-      .map(
-        (c) =>
-          `<option value="${c.id}" ${m.categoria === c.id ? "selected" : ""}>${
-            c.icon
-          } ${c.id}</option>`
-      )
-      .join("");
-
-    const fechaInput = m.fecha.split("T")[0];
-
     const { value: formValues } = await Swal.fire({
       title: "Editar Recuerdo",
-      html: `
-        <div style="display: flex; flex-direction: column; gap: 15px; text-align: left;">
-          <div>
-            <label style="font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase;">Historia</label>
-            <textarea id="swal-desc" class="swal2-textarea" style="width: 100%; margin: 5px 0; border-radius: 15px; font-style: italic;">${m.descripcion}</textarea>
-          </div>
-          <div>
-            <label style="font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase;">Categoría</label>
-            <select id="swal-cat" class="swal2-select" style="width: 100%; margin: 5px 0; border-radius: 15px;">${opcionesCategorias}</select>
-          </div>
-          <div>
-            <label style="font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase;">Fecha</label>
-            <input id="swal-date" type="date" class="swal2-input" style="width: 100%; margin: 5px 0; border-radius: 15px;" value="${fechaInput}">
-          </div>
-        </div>
-      `,
+      html: `<textarea id="swal-desc" class="swal2-textarea" style="border-radius: 15px;">${m.descripcion}</textarea>`,
       showCancelButton: true,
       confirmButtonColor: "#1e293b",
       preConfirm: () => ({
         descripcion: (
           document.getElementById("swal-desc") as HTMLTextAreaElement
         ).value,
-        categoria: (document.getElementById("swal-cat") as HTMLSelectElement)
-          .value,
-        fecha:
-          (document.getElementById("swal-date") as HTMLInputElement).value +
-          "T" +
-          (m.fecha.split("T")[1] || "12:00:00"),
       }),
     });
-
     if (formValues) {
       await updateDoc(doc(db, "memorias", m.id), formValues);
       Swal.fire({
@@ -157,14 +113,15 @@ export const Gallery: React.FC = () => {
     return isNaN(d.getTime()) ? new Date() : d;
   };
 
-  // Agrupación por Fechas
+  const esVideoURL = (url: string) =>
+    url?.toLowerCase().match(/\.(mp4|webm|mov)$/);
+
   const datosCrono = useMemo(() => {
     const almanaque: any = {};
     const filtradas =
       filtro === "Todos"
         ? memorias
         : memorias.filter((m) => m.categoria === filtro);
-
     filtradas.forEach((m) => {
       const d = parsearFecha(m.fecha);
       const anio = d.getFullYear();
@@ -195,17 +152,25 @@ export const Gallery: React.FC = () => {
       {/* FILTROS */}
       <div className="flex items-center gap-4 mb-10 sticky top-0 z-40 bg-[#fafafb]/80 backdrop-blur-md py-4 overflow-x-auto no-scrollbar px-4">
         <Filter size={16} className="text-slate-400 shrink-0" />
-        {categoriasFiltro.map((cat) => (
+        {[
+          "Todos",
+          "Cita",
+          "Viaje",
+          "Aniversario",
+          "Comida",
+          "Recuerdo",
+          "Momentos Random",
+        ].map((cat) => (
           <button
-            key={cat.id}
-            onClick={() => setFiltro(cat.id)}
+            key={cat}
+            onClick={() => setFiltro(cat)}
             className={`px-5 py-2.5 rounded-full text-[10px] font-black border transition-all shrink-0 ${
-              filtro === cat.id
-                ? "bg-slate-900 text-white shadow-xl"
+              filtro === cat
+                ? "bg-slate-900 text-white"
                 : "bg-white text-slate-400 border-slate-100"
             }`}
           >
-            {cat.icon} {cat.id}
+            {cat}
           </button>
         ))}
       </div>
@@ -235,45 +200,63 @@ export const Gallery: React.FC = () => {
                         {mes.toLowerCase()}
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {datosCrono[anio][mes][dia].fotos.map((m: Memoria) => (
-                          <motion.div
-                            key={m.id}
-                            whileHover={{ y: -8 }}
-                            className="group relative bg-white rounded-[40px] overflow-hidden shadow-xl shadow-slate-100 border border-white cursor-pointer"
-                            onClick={() => setSelected(m)}
-                          >
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleFullEdit(m);
-                              }}
-                              className="absolute top-4 right-4 z-30 p-2.5 bg-white/90 rounded-2xl text-slate-400 opacity-0 group-hover:opacity-100 transition-all hover:text-slate-900 shadow-sm border border-white/50 backdrop-blur-md"
+                        {datosCrono[anio][mes][dia].fotos.map((m: Memoria) => {
+                          const principalURL = m.urls ? m.urls[0] : m.url;
+                          const esVideo =
+                            esVideoURL(principalURL || "") ||
+                            m.tipo === "video";
+
+                          return (
+                            <motion.div
+                              key={m.id}
+                              whileHover={{ y: -8 }}
+                              className="group relative bg-white rounded-[40px] overflow-hidden shadow-xl shadow-slate-100 border border-white cursor-pointer"
+                              onClick={() => setSelected(m)}
                             >
-                              <Pencil size={14} />
-                            </button>
-                            {m.urls && m.urls.length > 1 && (
-                              <div className="absolute top-4 left-4 z-20 bg-white/80 backdrop-blur-md px-2 py-1 rounded-lg text-[9px] font-black border border-white">
-                                1/{m.urls.length}
-                              </div>
-                            )}
-                            <div className="aspect-[4/5] bg-slate-50 overflow-hidden relative">
-                              <img
-                                src={m.urls ? m.urls[0] : m.url}
-                                loading="lazy"
-                                className="w-full h-full object-cover"
-                                alt="recuerdo"
-                              />
-                              {m.categoria && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleFullEdit(m);
+                                }}
+                                className="absolute top-4 right-4 z-30 p-2.5 bg-white/90 rounded-2xl text-slate-400 opacity-0 group-hover:opacity-100 hover:text-slate-900 transition-all shadow-sm"
+                              >
+                                <Pencil size={14} />
+                              </button>
+
+                              <div className="aspect-[4/5] bg-slate-50 overflow-hidden relative">
+                                {esVideo ? (
+                                  <div className="w-full h-full relative">
+                                    <video
+                                      src={principalURL}
+                                      className="w-full h-full object-cover"
+                                      muted
+                                      playsInline
+                                    />
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                                      <Play
+                                        size={40}
+                                        className="text-white drop-shadow-lg"
+                                      />
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <img
+                                    src={principalURL}
+                                    loading="lazy"
+                                    className="w-full h-full object-cover"
+                                    alt="recuerdo"
+                                  />
+                                )}
                                 <span className="absolute bottom-4 right-4 bg-pink-100 text-pink-600 px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border border-white shadow-sm">
                                   #{m.categoria}
                                 </span>
-                              )}
-                            </div>
-                            <div className="p-6 text-slate-500 italic text-sm truncate font-medium">
-                              "{m.descripcion}"
-                            </div>
-                          </motion.div>
-                        ))}
+                              </div>
+                              <div className="p-6 text-slate-500 italic text-sm truncate font-medium">
+                                "{m.descripcion}"
+                              </div>
+                            </motion.div>
+                          );
+                        })}
                       </div>
                     </div>
                   ))}
@@ -306,45 +289,40 @@ export const Gallery: React.FC = () => {
                 <X size={24} />
               </button>
 
-              <div className="w-full md:w-[65%] bg-black flex items-center justify-center h-[45vh] md:h-auto relative">
+              <div className="w-full md:w-[65%] bg-black flex items-center justify-center h-[45vh] md:h-auto relative border-r border-slate-50">
                 <Swiper
                   modules={[Pagination, Navigation]}
                   pagination={{ clickable: true }}
                   navigation={{ nextEl: ".next-btn", prevEl: ".prev-btn" }}
                   className="w-full h-full"
                 >
-                  {(selected.urls || [selected.url]).map((u, i) => {
-                    const esVideo =
-                      u?.toLowerCase().match(/\.(mp4|webm|mov)$/) ||
-                      selected.tipo === "video";
-                    return (
-                      <SwiperSlide
-                        key={i}
-                        className="flex items-center justify-center bg-black"
-                      >
-                        {esVideo ? (
-                          <video
-                            src={u}
-                            controls
-                            className="max-h-full max-w-full"
-                            playsInline
-                          />
-                        ) : (
-                          <img
-                            src={u}
-                            className="max-h-full max-w-full object-contain"
-                            alt="img"
-                          />
-                        )}
-                      </SwiperSlide>
-                    );
-                  })}
+                  {(selected.urls || [selected.url]).map((u, i) => (
+                    <SwiperSlide
+                      key={i}
+                      className="flex items-center justify-center bg-black"
+                    >
+                      {esVideoURL(u || "") || selected.tipo === "video" ? (
+                        <video
+                          src={u}
+                          controls
+                          className="max-h-full max-w-full"
+                          playsInline
+                        />
+                      ) : (
+                        <img
+                          src={u}
+                          className="max-h-full max-w-full object-contain"
+                          alt="img"
+                        />
+                      )}
+                    </SwiperSlide>
+                  ))}
                   {(selected.urls?.length ?? 0) > 1 && (
                     <>
-                      <button className="prev-btn absolute left-4 top-1/2 -translate-y-1/2 z-50 p-2 bg-white/10 rounded-full text-white hover:bg-white/20 transition-all">
+                      <button className="prev-btn absolute left-4 top-1/2 -translate-y-1/2 z-50 p-2 bg-white/10 rounded-full text-white transition-colors hover:bg-white/20">
                         <ChevronLeft />
                       </button>
-                      <button className="next-btn absolute right-4 top-1/2 -translate-y-1/2 z-50 p-2 bg-white/10 rounded-full text-white hover:bg-white/20 transition-all">
+                      <button className="next-btn absolute right-4 top-1/2 -translate-y-1/2 z-50 p-2 bg-white/10 rounded-full text-white transition-colors hover:bg-white/20">
                         <ChevronRight />
                       </button>
                     </>
@@ -357,45 +335,56 @@ export const Gallery: React.FC = () => {
                   <span className="bg-pink-100 text-pink-600 px-3 py-1 rounded-full text-[9px] font-black uppercase">
                     #{selected.categoria}
                   </span>
-                  <p className="text-2xl font-serif italic text-slate-800 mt-4">
-                    {parsearFecha(selected.fecha).toLocaleDateString("es-ES", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </p>
-                  <div className="flex items-center gap-2 text-slate-400 text-xs font-bold mt-2 bg-slate-50 w-fit px-3 py-1 rounded-full border border-slate-100">
+                  <div className="flex items-center gap-2 mt-4">
+                    <CalendarDays size={18} className="text-pink-300" />
+                    <p className="text-2xl font-serif italic text-slate-800">
+                      {parsearFecha(selected.fecha).toLocaleDateString(
+                        "es-ES",
+                        { day: "numeric", month: "long", year: "numeric" }
+                      )}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-400 text-xs font-bold mt-2 bg-slate-50 w-fit px-3 py-1.5 rounded-full border border-slate-100">
                     <Clock size={12} className="text-pink-300" />
-                    <CalendarDays size={12} className="hidden" />
                     {parsearFecha(selected.fecha).toLocaleTimeString([], {
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
                   </div>
                 </div>
+
                 <div className="h-px bg-slate-100" />
-                <p className="text-slate-600 text-lg leading-relaxed font-medium italic whitespace-pre-wrap flex-1">
-                  "{selected.descripcion}"
-                </p>
-                <div className="flex items-center justify-between pt-6 border-t border-slate-50 mt-auto">
-                  <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100">
+
+                {/* INFO DEL AUTOR */}
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-3">
                     <img
                       src={selected.autorFoto}
-                      className="w-6 h-6 rounded-full border shadow-sm"
+                      className="w-8 h-8 rounded-full border border-white shadow-sm"
                       alt="autor"
                     />
-                    <span className="text-[10px] font-black text-slate-700 uppercase">
+                    <span className="text-xs font-black text-slate-700 uppercase tracking-tighter">
                       {selected.autor}
                     </span>
                   </div>
+                  <p className="text-slate-600 text-lg leading-relaxed font-medium italic whitespace-pre-wrap">
+                    "{selected.descripcion}"
+                  </p>
+                </div>
+
+                {/* BOTÓN ELIMINAR CENTRADO ABAJO */}
+                <div className="mt-auto pt-8 flex flex-col items-center">
                   <button
                     onClick={async () => {
                       if (
                         (
                           await Swal.fire({
-                            title: "¿Borrar?",
+                            title: "¿Eliminar Recuerdo?",
+                            text: "Esta acción borrará este momento para siempre",
                             icon: "warning",
                             showCancelButton: true,
+                            confirmButtonColor: "#ef4444",
+                            customClass: { popup: "rounded-[32px]" },
                           })
                         ).isConfirmed
                       ) {
@@ -403,9 +392,14 @@ export const Gallery: React.FC = () => {
                         setSelected(null);
                       }
                     }}
-                    className="text-red-300 hover:text-red-500 p-2 transition-colors"
+                    className="flex flex-col items-center gap-2 group"
                   >
-                    <Trash2 size={20} />
+                    <div className="p-4 bg-red-50 text-red-400 rounded-full group-hover:bg-red-100 group-hover:text-red-600 transition-all duration-300">
+                      <Trash2 size={28} />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-red-300 group-hover:text-red-500 transition-colors">
+                      Eliminar Recuerdo
+                    </span>
                   </button>
                 </div>
               </div>
