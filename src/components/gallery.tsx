@@ -58,23 +58,26 @@ export const Gallery: React.FC = () => {
 
   // 2. LÓGICA DEL BOTÓN "ATRÁS" DEL CELULAR PARA EL MODAL
   useEffect(() => {
-    const handleBack = () => {
-      if (selected) {
-        setSelected(null);
-      }
+    // Si no hay nada seleccionado, no hacemos nada
+    if (!selected) return;
+
+    // Cuando el modal se abre, añadimos una entrada al historial
+    window.history.pushState({ modalOpen: true }, "");
+
+    const handlePopState = () => {
+      // Si el usuario presiona el botón "Atrás" del celular
+      setSelected(null);
     };
 
-    if (selected) {
-      // Agregamos un estado al historial
-      window.history.pushState({ modalOpen: true }, "");
-      window.addEventListener("popstate", handleBack);
-    }
+    window.addEventListener("popstate", handlePopState);
 
     return () => {
-      window.removeEventListener("popstate", handleBack);
-      // CORRECCIÓN: Solo volvemos atrás si el cierre NO fue causado por el botón físico de atrás
-      // Esto evita que el historial se quede "desincronizado"
-      if (selected && window.history.state?.modalOpen) {
+      window.removeEventListener("popstate", handlePopState);
+
+      // EXPLICACIÓN: Si el usuario cerró el modal haciendo clic en la X o fuera,
+      // el estado de la historia "modalOpen: true" sigue ahí.
+      // Debemos quitarlo manualmente para que no se quede trabado.
+      if (window.history.state?.modalOpen) {
         window.history.back();
       }
     };
