@@ -86,7 +86,7 @@ export const Gallery: React.FC = () => {
 
   useEffect(() => {
     if (!selected) {
-      setVerReacciones(false);
+      setVerReacciones(false); // Resetear al cerrar el modal
       return;
     }
     window.history.pushState({ modalOpen: true }, "");
@@ -98,7 +98,6 @@ export const Gallery: React.FC = () => {
     };
   }, [selected]);
 
-  // EVENTO MAGIC: Usa confetti cuando se dispara
   useEffect(() => {
     const abrirAzar = () => {
       if (memorias.length > 0) {
@@ -130,7 +129,6 @@ export const Gallery: React.FC = () => {
         foto: user.photoURL || "",
         emoji: emoji,
       };
-      // Efecto confetti pequeño al reaccionar
       confetti({
         particleCount: 40,
         spread: 50,
@@ -439,20 +437,32 @@ export const Gallery: React.FC = () => {
                       </button>
                     ))}
                   </div>
+
+                  {/* CORRECCIÓN AQUÍ: Solo se muestra la lista si verReacciones es true */}
                   <button
-                    onClick={() => setVerReacciones(!verReacciones)}
+                    onClick={() => {
+                      if (!verReacciones) {
+                        confetti({
+                          particleCount: 30,
+                          spread: 60,
+                          origin: { y: 0.7 },
+                        });
+                      }
+                      setVerReacciones(!verReacciones);
+                    }}
                     className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-pink-500 transition-colors"
                   >
                     {Object.keys(selected.reacciones || {}).length} Reacciones
                   </button>
+
                   <AnimatePresence>
                     {verReacciones &&
                       Object.keys(selected.reacciones || {}).length > 0 && (
                         <motion.div
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          className="flex flex-wrap justify-center gap-2 py-2"
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: "auto" }}
+                          exit={{ opacity: 0, height: 0 }}
+                          className="flex flex-wrap justify-center gap-2 py-2 overflow-hidden"
                         >
                           {Object.entries(selected.reacciones || {}).map(
                             ([uid, r]) => (
@@ -463,7 +473,7 @@ export const Gallery: React.FC = () => {
                                 <img
                                   src={r.foto}
                                   className="w-4 h-4 rounded-full"
-                                  alt="r"
+                                  alt="avatar"
                                 />
                                 <span className="text-[8px] font-bold">
                                   {r.nombre}
@@ -478,6 +488,7 @@ export const Gallery: React.FC = () => {
                       )}
                   </AnimatePresence>
                 </div>
+
                 <div className="h-px bg-slate-100 w-full" />
                 <p className="text-slate-600 text-lg leading-relaxed font-medium italic whitespace-pre-wrap flex-1">
                   "{selected.descripcion}"
