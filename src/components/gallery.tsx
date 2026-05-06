@@ -120,7 +120,7 @@ export const Gallery: React.FC = () => {
     const user = auth.currentUser;
     const memoriaRef = doc(db, "memorias", mId);
 
-    // Obtenemos la memoria actual del estado para asegurar datos frescos
+    // Forzamos la lectura de los datos más recientes del estado
     const memoriaActual = memorias.find((m) => m.id === mId);
     const nuevasReacciones = { ...(memoriaActual?.reacciones || {}) };
 
@@ -132,7 +132,7 @@ export const Gallery: React.FC = () => {
         foto: user.photoURL || "",
         emoji: emoji,
       };
-      confetti({ particleCount: 40, spread: 50, origin: { y: 0.8 } });
+      confetti({ particleCount: 35, spread: 50, origin: { y: 0.8 } });
     }
     await updateDoc(memoriaRef, { reacciones: nuevasReacciones });
   };
@@ -154,11 +154,11 @@ export const Gallery: React.FC = () => {
       title: "Editar Recuerdo",
       html: `
         <div style="text-align: left; display: flex; flex-direction: column; gap: 10px;">
-          <label style="font-size: 10px; font-weight: bold; color: #94a3b8;">HISTORIA</label>
-          <textarea id="swal-desc" class="swal2-textarea" style="margin:0; border-radius: 15px;">${m.descripcion}</textarea>
-          <label style="font-size: 10px; font-weight: bold; color: #94a3b8;">CATEGORÍA</label>
+          <label style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase;">Historia</label>
+          <textarea id="swal-desc" class="swal2-textarea" style="margin:0; border-radius: 15px; font-size: 14px;">${m.descripcion}</textarea>
+          <label style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase;">Categoría</label>
           <select id="swal-cat" class="swal2-select" style="margin:0; width: 100%; border-radius: 15px;">${opcionesCats}</select>
-          <label style="font-size: 10px; font-weight: bold; color: #94a3b8;">FECHA</label>
+          <label style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase;">Fecha del Recuerdo</label>
           <input id="swal-date" type="date" class="swal2-input" style="margin:0; width: 100%; border-radius: 15px;" value="${fechaSolo}">
         </div>
       `,
@@ -178,6 +178,12 @@ export const Gallery: React.FC = () => {
     });
     if (formValues) {
       await updateDoc(doc(db, "memorias", m.id), formValues);
+      Swal.fire({
+        icon: "success",
+        title: "¡Guardado!",
+        timer: 1000,
+        showConfirmButton: false,
+      });
     }
   };
 
@@ -217,7 +223,7 @@ export const Gallery: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center py-40 text-slate-400 gap-4">
         <Loader2 className="animate-spin" size={40} />
-        <p className="italic font-medium">Abriendo el baúl...</p>
+        <p className="italic font-medium">Cargando momentos especiales...</p>
       </div>
     );
 
@@ -269,9 +275,6 @@ export const Gallery: React.FC = () => {
                           const esVideo =
                             esVideoURL(principalURL || "") ||
                             m.tipo === "video";
-                          const catIcon =
-                            categoriasMaster.find((c) => c.id === m.categoria)
-                              ?.icon || "📸";
                           return (
                             <motion.div
                               key={m.id}
@@ -284,7 +287,7 @@ export const Gallery: React.FC = () => {
                                   e.stopPropagation();
                                   handleFullEdit(m);
                                 }}
-                                className="absolute top-4 right-4 z-30 p-2.5 bg-white/90 rounded-2xl text-slate-400 opacity-0 group-hover:opacity-100 hover:text-slate-900 transition-all shadow-sm"
+                                className="absolute top-4 right-4 z-30 p-2.5 bg-white/90 rounded-2xl text-slate-400 opacity-0 group-hover:opacity-100 hover:text-slate-900 transition-all"
                               >
                                 <Pencil size={14} />
                               </button>
@@ -312,8 +315,13 @@ export const Gallery: React.FC = () => {
                                     alt="recuerdo"
                                   />
                                 )}
-                                <span className="absolute bottom-4 right-4 bg-pink-100 text-pink-600 px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border border-white shadow-sm flex items-center gap-1">
-                                  {catIcon} {m.categoria}
+                                <span className="absolute bottom-4 right-4 bg-pink-100 text-pink-600 px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border border-white shadow-sm">
+                                  {
+                                    categoriasMaster.find(
+                                      (c) => c.id === m.categoria
+                                    )?.icon
+                                  }{" "}
+                                  {m.categoria}
                                 </span>
                               </div>
                               <div className="p-6 text-slate-500 italic text-sm truncate font-medium">
@@ -416,7 +424,7 @@ export const Gallery: React.FC = () => {
                   </div>
                   <div className="flex flex-col items-center gap-2 mt-2 px-6 py-3 bg-white rounded-2xl shadow-lg shadow-slate-100 border border-slate-50">
                     <img
-                      src={selected.autorFoto}
+                      src={`${selected.autorFoto}?t=${new Date().getTime()}`}
                       className="w-10 h-10 rounded-full border-2 border-white shadow-md"
                       alt="autor"
                     />
@@ -447,7 +455,7 @@ export const Gallery: React.FC = () => {
                     onClick={() => {
                       if (!verReacciones)
                         confetti({
-                          particleCount: 30,
+                          particleCount: 20,
                           spread: 60,
                           origin: { y: 0.7 },
                         });
@@ -459,14 +467,15 @@ export const Gallery: React.FC = () => {
                   </button>
                   <AnimatePresence>
                     {verReacciones &&
-                      Object.keys(selected.reacciones || {}).length > 0 && (
+                      selected.reacciones &&
+                      Object.keys(selected.reacciones).length > 0 && (
                         <motion.div
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: "auto" }}
                           exit={{ opacity: 0, height: 0 }}
                           className="flex flex-wrap justify-center gap-2 py-2 overflow-hidden"
                         >
-                          {Object.entries(selected.reacciones || {}).map(
+                          {Object.entries(selected.reacciones).map(
                             ([uid, r]) => (
                               <div
                                 key={uid}
@@ -504,6 +513,7 @@ export const Gallery: React.FC = () => {
                             icon: "warning",
                             showCancelButton: true,
                             confirmButtonColor: "#ef4444",
+                            customClass: { popup: "rounded-[32px]" },
                           })
                         ).isConfirmed
                       ) {
