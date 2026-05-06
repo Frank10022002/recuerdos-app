@@ -10,3 +10,14 @@
   padding: 30px;
   border-radius: 50%;
 }
+@media (max-width: 768px) {
+  .swiper-button-next,
+  .swiper-button-prev {
+    display: none !important;
+  }
+}
+
+/* Color de los puntitos de paginación de Instagram */
+.swiper-pagination-bullet-active {
+  background: #ec4899 !important; /* El rosa de tu diseño */
+}
