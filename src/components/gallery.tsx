@@ -44,8 +44,8 @@ interface Reaccion {
 interface Memoria {
   id: string;
   archivos?: Archivo[];
-  urls?: string[]; // Compatibilidad anterior
-  url?: string; // Compatibilidad anterior
+  urls?: string[];
+  url?: string;
   tipo: "foto" | "video";
   descripcion: string;
   fecha: string;
@@ -75,8 +75,6 @@ export const Gallery: React.FC = () => {
     { id: "Momentos Random", icon: "🎲" },
   ];
 
-  const emojisReaccion = ["❤️", "😂", "😮", "😢", "🔥", "🙌"];
-
   useEffect(() => {
     const q = query(collection(db, "memorias"), orderBy("fecha", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -88,6 +86,7 @@ export const Gallery: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
+  // Uso de X y historial
   useEffect(() => {
     if (!selected) {
       setVerReacciones(false);
@@ -117,12 +116,12 @@ export const Gallery: React.FC = () => {
         foto: user.photoURL || "",
         emoji,
       };
-      confetti({ particleCount: 35, spread: 50, origin: { y: 0.8 } });
+      confetti({ particleCount: 30, spread: 60, origin: { y: 0.8 } });
     }
     await updateDoc(memoriaRef, { reacciones: nuevasReacciones });
   };
 
-  const handleFullEdit = async (m: Memoria) => {
+  const handleEdit = async (m: Memoria) => {
     const opcionesCats = categoriasMaster
       .filter((c) => c.id !== "Todos")
       .map(
@@ -132,21 +131,15 @@ export const Gallery: React.FC = () => {
           } ${c.id}</option>`
       )
       .join("");
-
-    const fechaSolo = m.fecha.split("T")[0];
-
     const { value: formValues } = await Swal.fire({
-      title: "Editar Recuerdo",
-      html: `
-        <div style="text-align: left; display: flex; flex-direction: column; gap: 12px;">
-          <label style="font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px;">Historia</label>
-          <textarea id="swal-desc" class="swal2-textarea" style="margin:0; border-radius: 15px; font-size: 14px; font-family: inherit;">${m.descripcion}</textarea>
-          <label style="font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px;">Categoría</label>
-          <select id="swal-cat" class="swal2-select" style="margin:0; width: 100%; border-radius: 15px;">${opcionesCats}</select>
-          <label style="font-size: 10px; font-weight: 900; color: #94a3b8; text-transform: uppercase; letter-spacing: 1px;">Fecha</label>
-          <input id="swal-date" type="date" class="swal2-input" style="margin:0; width: 100%; border-radius: 15px;" value="${fechaSolo}">
-        </div>
-      `,
+      title: "Editar",
+      html: `<textarea id="swal-desc" class="swal2-textarea" style="border-radius: 15px;">${
+        m.descripcion
+      }</textarea>
+             <select id="swal-cat" class="swal2-select">${opcionesCats}</select>
+             <input id="swal-date" type="date" class="swal2-input" value="${
+               m.fecha.split("T")[0]
+             }">`,
       showCancelButton: true,
       confirmButtonColor: "#1e293b",
       preConfirm: () => ({
@@ -161,15 +154,7 @@ export const Gallery: React.FC = () => {
           (m.fecha.split("T")[1] || "12:00:00"),
       }),
     });
-    if (formValues) {
-      await updateDoc(doc(db, "memorias", m.id), formValues);
-      Swal.fire({
-        icon: "success",
-        title: "¡Actualizado!",
-        timer: 1000,
-        showConfirmButton: false,
-      });
-    }
+    if (formValues) await updateDoc(doc(db, "memorias", m.id), formValues);
   };
 
   const parsearFecha = (f: string) => {
@@ -203,17 +188,15 @@ export const Gallery: React.FC = () => {
 
   if (loading)
     return (
-      <div className="flex flex-col items-center justify-center py-40 text-slate-400 gap-4">
-        <Loader2 className="animate-spin" size={40} />
-        <p className="italic font-medium">
-          Abriendo el baúl de los recuerdos...
-        </p>
+      <div className="flex items-center justify-center py-40">
+        <Loader2 className="animate-spin text-pink-500" size={48} />
       </div>
     );
 
   return (
     <div className="w-full perro">
-      <div className="flex items-center gap-4 mb-10 sticky top-0 z-40 bg-[#fafafb]/80 backdrop-blur-md py-4 overflow-x-auto no-scrollbar px-4">
+      {/* Filtros */}
+      <div className="flex items-center gap-4 mb-10 sticky top-0 z-40 bg-[#fafafb]/80 backdrop-blur-md py-4 overflow-x-auto px-4">
         <Filter size={16} className="text-slate-400 shrink-0" />
         {categoriasMaster.map((cat) => (
           <button
@@ -221,8 +204,8 @@ export const Gallery: React.FC = () => {
             onClick={() => setFiltro(cat.id)}
             className={`px-5 py-2.5 rounded-full text-[10px] font-black border transition-all shrink-0 flex items-center gap-2 ${
               filtro === cat.id
-                ? "bg-slate-900 text-white shadow-xl"
-                : "bg-white text-slate-400 border-slate-100"
+                ? "bg-slate-900 text-white"
+                : "bg-white text-slate-400"
             }`}
           >
             <span>{cat.icon}</span> {cat.id}
@@ -230,18 +213,16 @@ export const Gallery: React.FC = () => {
         ))}
       </div>
 
+      {/* Galería */}
       {Object.keys(datosCrono)
         .sort((a, b) => Number(b) - Number(a))
         .map((anio) => (
           <div key={anio} className="mt-12 text-left px-4 gato">
-            <h2 className="text-5xl md:text-7xl font-black text-slate-800/10 mb-8 select-none tracking-tighter">
+            <h2 className="text-5xl font-black text-slate-800/10 mb-8 tracking-tighter">
               {anio}
             </h2>
             {Object.keys(datosCrono[anio]).map((mes) => (
-              <div
-                key={mes}
-                className="mb-10 border-l-2 border-pink-50 pl-6 md:pl-8"
-              >
+              <div key={mes} className="mb-10 border-l-2 border-pink-50 pl-6">
                 <h3 className="text-lg font-bold text-pink-400 mb-6 uppercase tracking-widest italic">
                   {mes}
                 </h3>
@@ -255,7 +236,6 @@ export const Gallery: React.FC = () => {
                       </p>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                         {datosCrono[anio][mes][dia].fotos.map((m: Memoria) => {
-                          // Normalizamos el primer archivo para la miniatura
                           const principal = m.archivos
                             ? m.archivos[0]
                             : { url: m.urls?.[0] || m.url, tipo: m.tipo };
@@ -263,20 +243,20 @@ export const Gallery: React.FC = () => {
                             <motion.div
                               key={m.id}
                               whileHover={{ y: -8 }}
-                              className="group relative bg-white rounded-[40px] overflow-hidden shadow-xl shadow-slate-100 border border-white cursor-pointer"
+                              className="group relative bg-white rounded-[40px] overflow-hidden shadow-xl border border-white cursor-pointer"
                               onClick={() => setSelected(m)}
                             >
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  handleFullEdit(m);
+                                  handleEdit(m);
                                 }}
-                                className="absolute top-4 right-4 z-30 p-2.5 bg-white/90 rounded-2xl text-slate-400 opacity-0 group-hover:opacity-100 hover:text-slate-900 transition-all shadow-sm"
+                                className="absolute top-4 right-4 z-30 p-2.5 bg-white/90 rounded-2xl text-slate-400 opacity-0 group-hover:opacity-100"
                               >
                                 <Pencil size={14} />
                               </button>
-                              <div className="aspect-[4/5] bg-slate-50 overflow-hidden relative">
-                                {principal?.tipo === "video" ? (
+                              <div className="aspect-[4/5] bg-black overflow-hidden relative flex items-center justify-center">
+                                {principal.tipo === "video" ? (
                                   <div className="w-full h-full relative">
                                     <video
                                       src={principal.url}
@@ -285,29 +265,18 @@ export const Gallery: React.FC = () => {
                                       playsInline
                                       preload="metadata"
                                     />
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/20">
-                                      <Play
-                                        size={40}
-                                        className="text-white drop-shadow-lg"
-                                      />
-                                    </div>
+                                    <Play
+                                      size={40}
+                                      className="absolute inset-0 m-auto text-white opacity-80"
+                                    />
                                   </div>
                                 ) : (
                                   <img
-                                    src={principal?.url}
-                                    loading="lazy"
+                                    src={principal.url}
                                     className="w-full h-full object-cover"
-                                    alt="recuerdo"
+                                    alt="rec"
                                   />
                                 )}
-                                <span className="absolute bottom-4 right-4 bg-pink-100 text-pink-600 px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border border-white shadow-sm flex items-center gap-1">
-                                  {
-                                    categoriasMaster.find(
-                                      (c) => c.id === m.categoria
-                                    )?.icon
-                                  }{" "}
-                                  {m.categoria}
-                                </span>
                               </div>
                               <div className="p-6 text-slate-500 italic text-sm truncate font-medium">
                                 "{m.descripcion}"
@@ -323,6 +292,7 @@ export const Gallery: React.FC = () => {
           </div>
         ))}
 
+      {/* Modal */}
       <AnimatePresence>
         {selected && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-6">
@@ -331,17 +301,17 @@ export const Gallery: React.FC = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelected(null)}
-              className="absolute inset-0 bg-slate-900/95 backdrop-blur-xl"
+              className="absolute inset-0 bg-black/95 backdrop-blur-xl"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
-              className="relative bg-white w-full max-w-6xl md:rounded-[48px] overflow-hidden shadow-2xl flex flex-col md:flex-row h-full md:h-auto max-h-[100vh] md:max-h-[90vh] z-50"
+              className="relative bg-white w-full max-w-6xl md:rounded-[48px] overflow-hidden flex flex-col md:flex-row h-full md:h-auto z-50 shadow-2xl"
             >
               <button
                 onClick={() => setSelected(null)}
-                className="absolute top-6 right-6 z-[110] p-3 bg-white/20 text-white rounded-full hover:bg-white/40 backdrop-blur-md transition-all"
+                className="absolute top-6 right-6 z-[110] p-3 bg-white/20 text-white rounded-full hover:bg-white/40 transition-all"
               >
                 <X size={24} />
               </button>
@@ -362,7 +332,7 @@ export const Gallery: React.FC = () => {
                   ).map((archivo: any, i: number) => (
                     <SwiperSlide
                       key={i}
-                      className="w-full h-full flex items-center justify-center bg-black"
+                      className="w-full h-full flex items-center justify-center"
                     >
                       {archivo.tipo === "video" ? (
                         <video
@@ -370,7 +340,7 @@ export const Gallery: React.FC = () => {
                           controls
                           className="max-h-full max-w-full"
                           playsInline
-                          preload="metadata"
+                          preload="auto"
                         />
                       ) : (
                         <img
@@ -381,36 +351,39 @@ export const Gallery: React.FC = () => {
                       )}
                     </SwiperSlide>
                   ))}
-                  <button className="prev-btn absolute left-4 top-1/2 -translate-y-1/2 z-50 p-2 bg-white/10 rounded-full text-white hover:bg-white/20">
-                    <ChevronLeft size={24} />
-                  </button>
-                  <button className="next-btn absolute right-4 top-1/2 -translate-y-1/2 z-50 p-2 bg-white/10 rounded-full text-white hover:bg-white/20">
+                  <button className="next-btn absolute right-4 top-1/2 -translate-y-1/2 z-50 p-2 bg-white/10 rounded-full text-white hover:bg-white/20 transition-all">
                     <ChevronRight size={24} />
+                  </button>
+                  <button className="prev-btn absolute left-4 top-1/2 -translate-y-1/2 z-50 p-2 bg-white/10 rounded-full text-white hover:bg-white/20 transition-all">
+                    <ChevronLeft size={24} />
                   </button>
                 </Swiper>
               </div>
 
-              <div className="w-full md:w-[35%] p-8 md:p-12 flex flex-col gap-6 bg-white overflow-y-auto items-center text-center">
-                <div className="flex flex-col items-center gap-3 w-full">
-                  <div className="flex flex-col items-center gap-1">
-                    <div className="flex items-center gap-2 text-slate-800 font-serif italic text-2xl">
-                      <CalendarDays size={18} className="text-pink-300" />
-                      {parsearFecha(selected.fecha).toLocaleDateString(
-                        "es-ES",
-                        { day: "numeric", month: "long", year: "numeric" }
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 text-slate-400 text-xs font-bold bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
-                      <Clock size={12} className="text-pink-300" />{" "}
-                      {parsearFecha(selected.fecha).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </div>
+              <div className="w-full md:w-[35%] p-8 flex flex-col items-center text-center bg-white overflow-y-auto">
+                <div className="flex flex-col items-center gap-4">
+                  {/* CalendarDays en uso */}
+                  <div className="flex items-center gap-2 text-2xl font-serif italic text-slate-800">
+                    <CalendarDays className="text-pink-300" size={24} />
+                    {parsearFecha(selected.fecha).toLocaleDateString("es-ES", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
                   </div>
-                  <div className="flex flex-col items-center gap-2 mt-2 px-6 py-3 bg-white rounded-2xl shadow-lg shadow-slate-100 border border-slate-50">
+
+                  {/* CLOCK EN USO AQUÍ */}
+                  <div className="flex items-center gap-2 text-slate-400 text-xs font-bold bg-slate-50 px-4 py-2 rounded-full border border-slate-100">
+                    <Clock size={14} className="text-pink-300" />
+                    {parsearFecha(selected.fecha).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </div>
+
+                  <div className="flex flex-col items-center gap-2 mt-2 px-6 py-3 bg-white rounded-2xl shadow-lg border">
                     <img
-                      src={`${selected.autorFoto}?t=${new Date().getTime()}`}
+                      src={`${selected.autorFoto}?t=${Date.now()}`}
                       className="w-10 h-10 rounded-full border-2 border-white shadow-md"
                       alt="autor"
                     />
@@ -420,103 +393,85 @@ export const Gallery: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex flex-col items-center gap-3 w-full">
-                  <div className="flex gap-2 p-2 bg-slate-50 rounded-full border border-slate-100 shadow-inner">
-                    {emojisReaccion.map((emoji) => (
-                      <button
-                        key={emoji}
-                        onClick={() => handleReaccionar(selected.id, emoji)}
-                        className={`text-xl hover:scale-125 transition-transform p-1 rounded-full ${
-                          selected.reacciones?.[auth.currentUser?.uid || ""]
-                            ?.emoji === emoji
-                            ? "bg-white shadow-sm scale-110"
-                            : ""
-                        }`}
-                      >
-                        {emoji}
-                      </button>
-                    ))}
-                  </div>
-                  <button
-                    onClick={() => {
-                      if (!verReacciones)
-                        confetti({
-                          particleCount: 20,
-                          spread: 60,
-                          origin: { y: 0.7 },
-                        });
-                      setVerReacciones(!verReacciones);
-                    }}
-                    className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-pink-500 transition-colors"
-                  >
-                    {Object.keys(selected.reacciones || {}).length} Reacciones
-                  </button>
-                  <AnimatePresence>
-                    {verReacciones &&
-                      selected.reacciones &&
-                      Object.keys(selected.reacciones).length > 0 && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          exit={{ opacity: 0, height: 0 }}
-                          className="flex flex-wrap justify-center gap-2 py-2 overflow-hidden"
-                        >
-                          {Object.entries(selected.reacciones).map(
-                            ([uid, r]) => (
-                              <div
-                                key={uid}
-                                className="flex items-center gap-1 bg-white px-2 py-1 rounded-full border border-slate-100 shadow-sm relative"
-                              >
-                                <img
-                                  src={r.foto}
-                                  className="w-4 h-4 rounded-full"
-                                  alt="r"
-                                />
-                                <span className="text-[8px] font-bold">
-                                  {r.nombre}
-                                </span>
-                                <span className="absolute -top-2 -right-1 text-[10px]">
-                                  {r.emoji}
-                                </span>
-                              </div>
-                            )
-                          )}
-                        </motion.div>
-                      )}
-                  </AnimatePresence>
+                <div className="flex gap-2 p-4 mt-6 bg-slate-50 rounded-full shadow-inner border border-slate-100">
+                  {["❤️", "😂", "🔥", "😮", "🙌"].map((emoji) => (
+                    <button
+                      key={emoji}
+                      onClick={() => handleReaccionar(selected.id, emoji)}
+                      className={`text-xl hover:scale-125 transition-transform ${
+                        selected.reacciones?.[auth.currentUser?.uid || ""]
+                          ?.emoji === emoji
+                          ? "bg-white shadow-sm scale-110 rounded-full"
+                          : ""
+                      }`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
                 </div>
-                <div className="h-px bg-slate-100 w-full" />
-                <p className="text-slate-600 text-lg leading-relaxed font-medium italic whitespace-pre-wrap flex-1">
+
+                <button
+                  onClick={() => setVerReacciones(!verReacciones)}
+                  className="text-[9px] font-black uppercase text-slate-400 mt-2 mb-4 hover:text-pink-500 transition-colors"
+                >
+                  {Object.keys(selected.reacciones || {}).length} Reacciones
+                </button>
+
+                <AnimatePresence>
+                  {verReacciones &&
+                    selected.reacciones &&
+                    Object.keys(selected.reacciones).length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="flex flex-wrap justify-center gap-2 py-2 mb-4 overflow-hidden"
+                      >
+                        {Object.entries(selected.reacciones).map(([uid, r]) => (
+                          <div
+                            key={uid}
+                            className="flex items-center gap-1 bg-white px-2 py-1 rounded-full border border-slate-100 shadow-sm relative text-[8px] font-bold"
+                          >
+                            <img
+                              src={r.foto}
+                              className="w-4 h-4 rounded-full"
+                              alt="r"
+                            />
+                            {r.nombre}
+                            <span className="absolute -top-2 -right-1 text-[10px]">
+                              {r.emoji}
+                            </span>
+                          </div>
+                        ))}
+                      </motion.div>
+                    )}
+                </AnimatePresence>
+
+                <div className="h-px bg-slate-100 w-full my-4" />
+                <p className="text-slate-600 text-lg italic font-medium whitespace-pre-wrap flex-1">
                   "{selected.descripcion}"
                 </p>
-                <div className="mt-auto pt-8 flex flex-col items-center w-full">
-                  <button
-                    onClick={async () => {
-                      if (
-                        (
-                          await Swal.fire({
-                            title: "¿Eliminar?",
-                            icon: "warning",
-                            showCancelButton: true,
-                            confirmButtonColor: "#ef4444",
-                            customClass: { popup: "rounded-[32px]" },
-                          })
-                        ).isConfirmed
-                      ) {
-                        await deleteDoc(doc(db, "memorias", selected.id));
-                        setSelected(null);
-                      }
-                    }}
-                    className="flex flex-col items-center gap-2 group"
-                  >
-                    <div className="p-4 bg-red-50 text-red-400 rounded-full group-hover:bg-red-100 transition-all">
-                      <Trash2 size={28} />
-                    </div>
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-red-300">
-                      Eliminar Recuerdo
-                    </span>
-                  </button>
-                </div>
+
+                <button
+                  onClick={async () => {
+                    if (
+                      (
+                        await Swal.fire({
+                          title: "¿Eliminar?",
+                          icon: "warning",
+                          showCancelButton: true,
+                          confirmButtonColor: "#ef4444",
+                        })
+                      ).isConfirmed
+                    ) {
+                      await deleteDoc(doc(db, "memorias", selected.id));
+                      setSelected(null);
+                    }
+                  }}
+                  className="mt-8 p-4 bg-red-50 text-red-400 rounded-full hover:bg-red-100 transition-colors"
+                >
+                  <Trash2 size={28} />
+                </button>
               </div>
             </motion.div>
           </div>
