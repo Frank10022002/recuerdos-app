@@ -12,11 +12,28 @@ import { db } from "../firebaseConfig";
 import { motion, AnimatePresence } from "framer-motion";
 import Swal from "sweetalert2";
 import confetti from "canvas-confetti";
-import { Clock, X, CalendarDays, Trash2, Filter, Pencil } from "lucide-react";
+import {
+  Clock,
+  X,
+  CalendarDays,
+  Trash2,
+  Filter,
+  Pencil,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+
+// Swiper
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Pagination, Navigation } from "swiper/modules";
+import "swiper/css";
+import "swiper/css/pagination";
+import "swiper/css/navigation";
 
 interface Memoria {
   id: string;
-  url: string;
+  urls?: string[];
+  url?: string; // Compatibilidad
   descripcion: string;
   tipo: "foto" | "video";
   fecha: string;
@@ -35,173 +52,66 @@ export const Gallery: React.FC = () => {
     { id: "Todos", icon: "🌈" },
     { id: "Cita", icon: "🌹" },
     { id: "Viaje", icon: "✈️" },
-    { id: "Diversión", icon: "😂" },
     { id: "Aniversario", icon: "✨" },
     { id: "Comida", icon: "🍕" },
     { id: "Recuerdo", icon: "📸" },
-    { id: "Momentos Random", icon: "🎲" },
   ];
 
-  // 1. CARGAR MEMORIAS
   useEffect(() => {
     const q = query(collection(db, "memorias"), orderBy("fecha", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const datos = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Memoria[];
-      setMemorias(datos);
+      setMemorias(
+        snapshot.docs.map((d) => ({ id: d.id, ...d.data() })) as Memoria[]
+      );
       setLoading(false);
     });
     return () => unsubscribe();
   }, []);
 
-  // 2. LÓGICA DEL BOTÓN "ATRÁS" DEL CELULAR PARA EL MODAL
+  // Bug Fix: 2do click y Botón atrás
   useEffect(() => {
-    // Si no hay nada seleccionado, no hacemos nada
     if (!selected) return;
-
-    // Cuando el modal se abre, añadimos una entrada al historial
     window.history.pushState({ modalOpen: true }, "");
-
-    const handlePopState = () => {
-      // Si el usuario presiona el botón "Atrás" del celular
-      setSelected(null);
-    };
-
+    const handlePopState = () => setSelected(null);
     window.addEventListener("popstate", handlePopState);
-
     return () => {
       window.removeEventListener("popstate", handlePopState);
-
-      // EXPLICACIÓN: Si el usuario cerró el modal haciendo clic en la X o fuera,
-      // el estado de la historia "modalOpen: true" sigue ahí.
-      // Debemos quitarlo manualmente para que no se quede trabado.
-      if (window.history.state?.modalOpen) {
-        window.history.back();
-      }
+      if (window.history.state?.modalOpen) window.history.back();
     };
   }, [selected]);
 
-  // 3. RECUERDO AL AZAR (EVENTO MAGIC)
+  // Magic Confetti
   useEffect(() => {
     const abrirAzar = () => {
       if (memorias.length > 0) {
         const random = memorias[Math.floor(Math.random() * memorias.length)];
         setSelected(random);
-        confetti({
-          particleCount: 150,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ["#ec4899", "#f43f5e", "#fb7185"],
-        });
+        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
       }
     };
     window.addEventListener("magicMemory", abrirAzar);
     return () => window.removeEventListener("magicMemory", abrirAzar);
   }, [memorias]);
 
-  const parsearFechaSegura = (fechaStr: string) => {
-    if (!fechaStr) return new Date();
-    const limpio = fechaStr.replace(/-/g, "/").replace("T", " ");
-    const d = new Date(limpio);
-    return isNaN(d.getTime()) ? new Date() : d;
-  };
-
-  const handleDelete = async (id: string) => {
-    const res = await Swal.fire({
-      title: "¿Borrar recuerdo?",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#ef4444",
-      customClass: { popup: "rounded-[32px]" },
-    });
-    if (res.isConfirmed) {
-      await deleteDoc(doc(db, "memorias", id));
-      setSelected(null);
-    }
-  };
-
   const handleFullEdit = async (m: Memoria) => {
     const { value: formValues } = await Swal.fire({
       title: "Editar Recuerdo",
-      html: `
-        <div style="display: flex; flex-direction: column; gap: 15px; text-align: left;">
-          <label style="font-size: 10px; font-weight: 900; text-transform: uppercase; color: #94a3b8;">Historia</label>
-          <textarea id="swal-desc" class="swal2-textarea" style="margin: 0; width: 100%; border-radius: 15px; font-style: italic;">${
-            m.descripcion
-          }</textarea>
-          <label style="font-size: 10px; font-weight: 900; text-transform: uppercase; color: #94a3b8;">Categoría</label>
-          <select id="swal-cat" class="swal2-input" style="margin: 0; width: 100%; border-radius: 15px;">
-            ${categoriasFiltro
-              .filter((c) => c.id !== "Todos")
-              .map(
-                (c) =>
-                  `<option value="${c.id}" ${
-                    m.categoria === c.id ? "selected" : ""
-                  }>${c.icon} ${c.id}</option>`
-              )
-              .join("")}
-          </select>
-          <label style="font-size: 10px; font-weight: 900; text-transform: uppercase; color: #94a3b8;">Fecha</label>
-          <input id="swal-date" type="date" class="swal2-input" style="margin: 0; width: 100%; border-radius: 15px;" value="${
-            m.fecha.split("T")[0]
-          }">
-        </div>
-      `,
-      focusConfirm: false,
+      html: `<input id="swal-desc" class="swal2-input" value="${m.descripcion}">`,
       showCancelButton: true,
-      confirmButtonText: "Guardar",
-      confirmButtonColor: "#1e293b",
-      customClass: { popup: "rounded-[32px]" },
-      preConfirm: () => {
-        return {
-          descripcion: (
-            document.getElementById("swal-desc") as HTMLTextAreaElement
-          ).value,
-          categoria: (document.getElementById("swal-cat") as HTMLSelectElement)
-            .value,
-          fecha:
-            (document.getElementById("swal-date") as HTMLInputElement).value +
-            "T" +
-            (m.fecha.split("T")[1] || "12:00:00"),
-        };
-      },
+      preConfirm: () => ({
+        descripcion: (document.getElementById("swal-desc") as HTMLInputElement)
+          .value,
+      }),
     });
-
     if (formValues) {
       await updateDoc(doc(db, "memorias", m.id), formValues);
-      Swal.fire({
-        icon: "success",
-        title: "¡Actualizado!",
-        showConfirmButton: false,
-        timer: 1000,
-      });
+      Swal.fire("¡Actualizado!", "", "success");
     }
   };
 
-  const obtenerAlmanaque = () => {
-    const almanaque: any = {};
-    const filtradas =
-      filtro === "Todos"
-        ? memorias
-        : memorias.filter((m) => m.categoria === filtro);
-    filtradas.forEach((m) => {
-      const d = parsearFechaSegura(m.fecha);
-      const anio = d.getFullYear();
-      const mes = d.toLocaleString("es-ES", { month: "long" }).toUpperCase();
-      const dia = d.getDate();
-      if (!almanaque[anio]) almanaque[anio] = {};
-      if (!almanaque[anio][mes]) almanaque[anio][mes] = {};
-      if (!almanaque[anio][mes][dia]) {
-        almanaque[anio][mes][dia] = {
-          nombre: d.toLocaleString("es-ES", { weekday: "long" }),
-          fotos: [],
-        };
-      }
-      almanaque[anio][mes][dia].fotos.push(m);
-    });
-    return almanaque;
+  const parsearFecha = (f: string) => {
+    const d = new Date(f.replace(/-/g, "/").replace("T", " "));
+    return isNaN(d.getTime()) ? new Date() : d;
   };
 
   if (loading)
@@ -210,233 +120,144 @@ export const Gallery: React.FC = () => {
         Abriendo el baúl...
       </div>
     );
-  const datosCrono = obtenerAlmanaque();
 
   return (
-    <div className="w-full">
+    <div className="w-full p-4">
       {/* FILTROS */}
-      <div className="flex items-center gap-4 mb-10 sticky top-0 z-40 bg-[#fafafb]/80 backdrop-blur-md py-4 overflow-x-auto no-scrollbar">
-        <div className="flex items-center gap-2 mr-2 text-slate-400 shrink-0">
-          <Filter size={16} />
-          <span className="text-[9px] font-black uppercase tracking-widest">
-            Filtrar:
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          {categoriasFiltro.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setFiltro(cat.id)}
-              className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shrink-0 border ${
-                filtro === cat.id
-                  ? "bg-slate-900 text-white border-slate-900 shadow-xl scale-105"
-                  : "bg-white text-slate-400 border-slate-100 shadow-sm hover:border-slate-200"
-              }`}
-            >
-              <span className="text-sm">{cat.icon}</span> {cat.id}
-            </button>
-          ))}
-        </div>
+      <div className="flex gap-2 mb-8 overflow-x-auto pb-4 no-scrollbar">
+        <Filter size={16} className="text-slate-400 mt-2" />
+        {categoriasFiltro.map((cat) => (
+          <button
+            key={cat.id}
+            onClick={() => setFiltro(cat.id)}
+            className={`px-4 py-2 rounded-full text-[10px] font-black border shrink-0 transition-all ${
+              filtro === cat.id
+                ? "bg-slate-900 text-white"
+                : "bg-white text-slate-400"
+            }`}
+          >
+            {cat.icon} {cat.id}
+          </button>
+        ))}
       </div>
 
-      {/* GALERÍA */}
-      {Object.keys(datosCrono)
-        .sort((a, b) => Number(b) - Number(a))
-        .map((anio) => (
-          <div key={anio} className="mt-12 text-left">
-            <h2 className="text-5xl md:text-7xl font-black text-slate-800/10 mb-8 select-none tracking-tighter">
-              {anio}
-            </h2>
-            {Object.keys(datosCrono[anio]).map((mes) => (
-              <div
-                key={mes}
-                className="mb-10 border-l-2 border-pink-50 pl-6 md:pl-8"
+      {/* GRID */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {memorias
+          .filter((m) => filtro === "Todos" || m.categoria === filtro)
+          .map((m) => (
+            <motion.div
+              key={m.id}
+              layoutId={m.id}
+              className="bg-white rounded-[32px] overflow-hidden shadow-sm border border-slate-50 relative group"
+            >
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleFullEdit(m);
+                }}
+                className="absolute top-4 right-4 z-20 p-2 bg-white/80 backdrop-blur-md rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
               >
-                <h3 className="text-lg font-bold text-pink-400 mb-6 uppercase tracking-widest italic">
-                  {mes}
-                </h3>
-                {Object.keys(datosCrono[anio][mes])
-                  .sort((a, b) => Number(b) - Number(a))
-                  .map((dia) => (
-                    <div key={dia} className="mb-12">
-                      <p className="text-slate-400 text-[10px] mb-4 uppercase font-bold tracking-widest">
-                        {datosCrono[anio][mes][dia].nombre}, {dia}{" "}
-                        {mes.toLowerCase()}
-                      </p>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                        {datosCrono[anio][mes][dia].fotos.map((m: Memoria) => (
-                          <motion.div
-                            key={m.id}
-                            className="group relative bg-white rounded-[40px] overflow-hidden shadow-xl shadow-slate-100 border border-white"
-                            whileHover={{ y: -8 }}
-                          >
-                            <div className="absolute top-4 left-4 z-20 flex items-center gap-2 bg-white/80 backdrop-blur-md px-2.5 py-1.5 rounded-full shadow-sm border border-white/40">
-                              <img
-                                src={
-                                  m.autorFoto ||
-                                  `https://ui-avatars.com/api/?name=${m.autor}&background=fce7f3&color=ec4899`
-                                }
-                                className="w-5 h-5 rounded-full object-cover border border-white"
-                                alt="perfil"
-                              />
-                              <span className="text-[9px] font-black text-slate-700 uppercase tracking-tight">
-                                {m.autor}
-                              </span>
-                            </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleFullEdit(m);
-                              }}
-                              className="absolute top-4 right-4 z-30 p-2.5 bg-white/90 rounded-2xl text-slate-400 opacity-0 group-hover:opacity-100 transition-all hover:text-slate-900 shadow-sm border border-white/50 backdrop-blur-md"
-                            >
-                              <Pencil size={14} />
-                            </button>
-                            <div
-                              onClick={() => setSelected(m)}
-                              className="cursor-pointer"
-                            >
-                              <div className="absolute bottom-4 right-4 z-20 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[8px] font-black uppercase text-pink-500 border border-white/50 shadow-sm">
-                                #{m.categoria || "Recuerdo"}
-                              </div>
-                              <div className="aspect-[4/5] bg-slate-50 flex items-center justify-center overflow-hidden">
-                                {m.tipo === "video" ? (
-                                  <video
-                                    src={m.url}
-                                    className="w-full h-full object-cover"
-                                    poster={m.url.replace(/\.[^/.]+$/, ".jpg")}
-                                    preload="metadata"
-                                    playsInline
-                                    muted
-                                    loop
-                                  />
-                                ) : (
-                                  <img
-                                    src={m.url}
-                                    className="w-full h-full object-cover"
-                                    alt="recuerdo"
-                                  />
-                                )}
-                              </div>
-                              <div className="p-6 text-slate-500 italic text-sm truncate font-medium">
-                                "{m.descripcion}"
-                              </div>
-                            </div>
-                          </motion.div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+                <Pencil size={14} className="text-slate-600" />
+              </button>
+              <div onClick={() => setSelected(m)} className="cursor-pointer">
+                <img
+                  src={m.urls ? m.urls[0] : m.url}
+                  className="w-full aspect-square object-cover"
+                  alt="recuerdo"
+                />
+                <div className="p-4 italic text-slate-500 text-sm truncate">
+                  "{m.descripcion}"
+                </div>
               </div>
-            ))}
-          </div>
-        ))}
+            </motion.div>
+          ))}
+      </div>
 
       {/* MODAL DETALLE */}
       <AnimatePresence>
         {selected && (
-          <div
-            className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-6 text-left"
-            key="modal"
-          >
+          <div className="fixed inset-0 z-[100] flex items-center justify-center md:p-6">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelected(null)}
-              className="absolute inset-0 bg-slate-900/95 backdrop-blur-xl"
+              className="absolute inset-0 bg-slate-900/90 backdrop-blur-md"
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative bg-white w-full max-w-6xl md:rounded-[48px] overflow-hidden shadow-2xl flex flex-col md:flex-row h-full md:h-auto max-h-[100vh] md:max-h-[90vh] z-50"
+              layoutId={selected.id}
+              className="relative bg-white w-full max-w-5xl md:rounded-[40px] overflow-hidden flex flex-col md:flex-row h-full md:h-auto max-h-[90vh]"
             >
               <button
                 onClick={() => setSelected(null)}
-                className="absolute top-6 right-6 z-[60] p-3 bg-slate-50 text-slate-400 rounded-full hover:bg-slate-100 transition-colors"
+                className="absolute top-4 right-4 z-[110] p-2 bg-slate-100 rounded-full text-slate-500"
               >
-                <X size={24} />
+                <X />
               </button>
-              <div className="w-full md:w-[65%] bg-black flex items-center justify-center h-[45vh] md:h-auto overflow-hidden">
-                {selected.tipo === "video" ? (
-                  <video
-                    src={selected.url}
-                    controls
-                    className="max-h-full w-full"
-                    autoPlay
-                    playsInline
-                    preload="auto"
-                  />
-                ) : (
-                  <img
-                    src={selected.url}
-                    className="max-h-full w-full object-contain"
-                    alt="preview"
-                  />
-                )}
+
+              {/* CARRUSEL */}
+              <div className="w-full md:w-2/3 bg-black relative flex items-center justify-center">
+                <Swiper
+                  modules={[Pagination, Navigation]}
+                  pagination={{ clickable: true }}
+                  navigation={{ nextEl: ".next-btn", prevEl: ".prev-btn" }}
+                  className="w-full h-full"
+                >
+                  {(selected.urls || [selected.url]).map((u, i) => (
+                    <SwiperSlide key={i}>
+                      <img src={u} className="w-full h-full object-contain" />
+                    </SwiperSlide>
+                  ))}
+                  <button className="prev-btn absolute left-4 top-1/2 -translate-y-1/2 z-50 p-2 bg-white/10 rounded-full text-white">
+                    <ChevronLeft />
+                  </button>
+                  <button className="next-btn absolute right-4 top-1/2 -translate-y-1/2 z-50 p-2 bg-white/10 rounded-full text-white">
+                    <ChevronRight />
+                  </button>
+                </Swiper>
               </div>
-              <div className="w-full md:w-[35%] p-8 md:p-12 flex flex-col gap-6 bg-white overflow-y-auto">
+
+              {/* INFO */}
+              <div className="w-full md:w-1/3 p-8 flex flex-col gap-6 overflow-y-auto bg-white">
                 <div>
-                  <span className="bg-pink-100 text-pink-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest">
-                    #{selected.categoria || "Recuerdo"}
+                  <span className="text-[10px] font-black text-pink-500 uppercase tracking-widest bg-pink-50 px-3 py-1 rounded-full">
+                    #{selected.categoria}
                   </span>
-                  <h4 className="text-[10px] font-black text-slate-300 uppercase tracking-widest flex items-center gap-1 mt-4">
-                    <CalendarDays size={12} /> Detalle
-                  </h4>
-                  <p className="text-2xl font-serif italic text-slate-800 leading-tight">
-                    {parsearFechaSegura(selected.fecha).toLocaleDateString(
-                      "es-ES",
-                      { day: "numeric", month: "long", year: "numeric" }
-                    )}
-                  </p>
-                  <p className="text-slate-400 text-xs flex items-center gap-1 font-bold bg-slate-50 w-fit px-3 py-1.5 rounded-full border border-slate-100 mt-2">
-                    <Clock size={12} className="text-pink-300" />
-                    {parsearFechaSegura(selected.fecha).toLocaleTimeString(
-                      "es-ES",
-                      { hour: "2-digit", minute: "2-digit", hour12: true }
-                    )}
-                  </p>
+                  <div className="flex items-center gap-2 mt-4 text-slate-800 text-xl font-serif italic">
+                    <CalendarDays size={18} />{" "}
+                    {parsearFecha(selected.fecha).toLocaleDateString()}
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-400 text-xs font-bold mt-1">
+                    <Clock size={14} />{" "}
+                    {parsearFecha(selected.fecha).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </div>
                 </div>
-                <div className="h-px bg-slate-100 w-full" />
-                <div className="flex flex-col items-center gap-2">
-                  <h4 className="text-[9px] font-black text-slate-300 uppercase tracking-[0.2em]">
-                    Subido por:
-                  </h4>
-                  <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-2xl border border-slate-100">
+                <p className="text-slate-600 text-lg leading-relaxed italic flex-1">
+                  "{selected.descripcion}"
+                </p>
+                <div className="flex justify-between items-center pt-6 border-t border-slate-50">
+                  <div className="flex items-center gap-2">
                     <img
-                      src={
-                        selected.autorFoto ||
-                        `https://ui-avatars.com/api/?name=${selected.autor}&background=fce7f3&color=ec4899`
-                      }
-                      className="w-6 h-6 rounded-full border shadow-sm"
-                      alt="perfil"
+                      src={selected.autorFoto}
+                      className="w-6 h-6 rounded-full"
+                      alt="autor"
                     />
-                    <span className="text-xs font-bold text-slate-700 uppercase tracking-tighter">
+                    <span className="text-[10px] font-black uppercase text-slate-400">
                       {selected.autor}
                     </span>
                   </div>
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-[10px] font-black text-slate-300 uppercase tracking-widest mb-3">
-                    Nuestra Historia
-                  </h4>
-                  <p className="text-slate-600 text-lg leading-relaxed font-medium italic whitespace-pre-wrap">
-                    "{selected.descripcion}"
-                  </p>
-                </div>
-                <div className="pt-8 border-t border-slate-50 flex flex-col items-center gap-6 mt-auto">
                   <button
-                    onClick={() => handleDelete(selected.id)}
-                    className="flex items-center gap-2 px-6 py-3 text-red-300 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all group w-fit"
+                    onClick={() => {
+                      deleteDoc(doc(db, "memorias", selected.id));
+                      setSelected(null);
+                    }}
+                    className="p-2 text-red-300 hover:text-red-500 transition-colors"
                   >
-                    <Trash2
-                      size={18}
-                      className="group-hover:scale-110 transition-transform"
-                    />
-                    <span className="text-[10px] font-black uppercase tracking-widest">
-                      Eliminar Recuerdo
-                    </span>
+                    <Trash2 size={20} />
                   </button>
                 </div>
               </div>

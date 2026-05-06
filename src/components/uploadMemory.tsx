@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { db, auth } from "../firebaseConfig";
 import { collection, addDoc } from "firebase/firestore";
-import { ImagePlus, Loader2, CheckCircle2 } from "lucide-react";
+import { ImagePlus, Loader2, CheckCircle2, X } from "lucide-react";
 import Swal from "sweetalert2";
 
 interface UploadMemoryProps {
@@ -9,7 +9,8 @@ interface UploadMemoryProps {
 }
 
 export const UploadMemory: React.FC<UploadMemoryProps> = ({ onComplete }) => {
-  const [file, setFile] = useState<File | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
   const [description, setDescription] = useState("");
   const [uploading, setUploading] = useState(false);
   const [manualDate, setManualDate] = useState(
@@ -18,7 +19,6 @@ export const UploadMemory: React.FC<UploadMemoryProps> = ({ onComplete }) => {
   const [categoria, setCategoria] = useState("Cita");
 
   const categorias = [
-    { id: "Todos", icon: "🌈" },
     { id: "Cita", icon: "🌹" },
     { id: "Viaje", icon: "✈️" },
     { id: "Aniversario", icon: "✨" },
@@ -27,49 +27,70 @@ export const UploadMemory: React.FC<UploadMemoryProps> = ({ onComplete }) => {
     { id: "Momentos Random", icon: "🎲" },
   ];
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const selectedFiles = Array.from(e.target.files);
+      setFiles((prev) => [...prev, ...selectedFiles]);
+      const newPreviews = selectedFiles.map((file) =>
+        URL.createObjectURL(file)
+      );
+      setPreviews((prev) => [...prev, ...newPreviews]);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+    setPreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!file || !auth.currentUser) return;
+    if (files.length === 0 || !auth.currentUser) return;
 
     setUploading(true);
     Swal.fire({
-      title: "Guardando...",
+      title: "Guardando en el baúl...",
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading(),
     });
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("upload_preset", "baul_recuerdos");
+      const uploadPromises = files.map(async (file) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", "baul_recuerdos");
+        const res = await fetch(
+          "https://api.cloudinary.com/v1_1/duq6yy1su/auto/upload",
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+        const data = await res.json();
+        return data.secure_url;
+      });
 
-      const res = await fetch(
-        "https://api.cloudinary.com/v1_1/duq6yy1su/auto/upload",
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-      const data = await res.json();
+      const urls = await Promise.all(uploadPromises);
 
       await addDoc(collection(db, "memorias"), {
-        url: data.secure_url,
+        urls,
         descripcion: description,
-        tipo: file.type.startsWith("video/") ? "video" : "foto",
+        tipo: files[0].type.startsWith("video/") ? "video" : "foto",
         fecha: `${manualDate}T${new Date().toLocaleTimeString("en-GB")}`,
         autor: auth.currentUser.displayName || "Especial",
         autorFoto: auth.currentUser.photoURL || "",
-        categoria: categoria,
+        categoria,
       });
 
       Swal.fire({
-        title: "¡Listo!",
-        text: "Recuerdo guardado",
         icon: "success",
+        title: "¡Listo!",
         timer: 1500,
         showConfirmButton: false,
-        customClass: { popup: "rounded-[32px]" },
       });
+      setFiles([]);
+      setPreviews([]);
+      setDescription("");
       if (onComplete) onComplete();
     } catch (error) {
       Swal.fire("Error", "No se pudo subir", "error");
@@ -79,14 +100,14 @@ export const UploadMemory: React.FC<UploadMemoryProps> = ({ onComplete }) => {
   };
 
   return (
-    <div className="max-w-xl mx-auto bg-white rounded-[40px] p-8 md:p-12 shadow-sm border border-slate-100">
+    <div className="max-w-xl mx-auto bg-white rounded-[40px] p-8 shadow-sm border border-slate-100">
       <form onSubmit={handleUpload} className="space-y-6 text-left">
         <h2 className="text-2xl font-serif italic text-slate-800">
           Nuevo Momento
         </h2>
 
         <div className="flex flex-col gap-2">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
+          <label className="text-[10px] font-black text-slate-400 uppercase ml-2">
             ¿Cuándo fue?
           </label>
           <input
@@ -97,63 +118,77 @@ export const UploadMemory: React.FC<UploadMemoryProps> = ({ onComplete }) => {
           />
         </div>
 
-        {/* SELECTOR DE CATEGORÍAS */}
-        <div className="flex flex-col gap-3">
-          <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">
-            ¿Qué tipo de momento fue?
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {categorias.map((cat) => (
-              <button
-                key={cat.id}
-                type="button"
-                onClick={() => setCategoria(cat.id)}
-                className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all border flex items-center gap-2 ${
-                  categoria === cat.id
-                    ? "bg-pink-500 text-white border-pink-500 shadow-lg shadow-pink-100 scale-105"
-                    : "bg-slate-50 text-slate-400 border-slate-100 hover:bg-white"
-                }`}
-              >
-                <span className="text-sm">{cat.icon}</span>
-                {cat.id}
-              </button>
-            ))}
-          </div>
+        <div className="flex flex-wrap gap-2">
+          {categorias.map((cat) => (
+            <button
+              key={cat.id}
+              type="button"
+              onClick={() => setCategoria(cat.id)}
+              className={`px-4 py-2 rounded-2xl text-xs font-bold border transition-all ${
+                categoria === cat.id
+                  ? "bg-pink-500 text-white border-pink-500"
+                  : "bg-slate-50 text-slate-400"
+              }`}
+            >
+              {cat.icon} {cat.id}
+            </button>
+          ))}
         </div>
 
-        <div className="relative h-40 border-2 border-dashed border-slate-100 rounded-3xl flex flex-col items-center justify-center hover:bg-pink-50 transition-colors cursor-pointer">
+        <div className="relative min-h-[120px] border-2 border-dashed border-slate-100 rounded-3xl flex items-center justify-center p-4">
           <input
             type="file"
-            onChange={(e) => setFile(e.target.files?.[0] || null)}
-            className="absolute inset-0 opacity-0 cursor-pointer"
+            multiple
+            onChange={handleFileChange}
+            className="absolute inset-0 opacity-0 cursor-pointer z-10"
           />
-          {file ? (
-            <CheckCircle2 className="text-green-500" />
+          {previews.length > 0 ? (
+            <div className="flex flex-wrap gap-2 justify-center">
+              {previews.map((src, i) => (
+                <div key={i} className="relative w-16 h-16 group">
+                  <img
+                    src={src}
+                    className="w-full h-full object-cover rounded-xl border"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeFile(i)}
+                    className="absolute -top-2 -right-2 bg-white rounded-full shadow-md p-1 text-red-500"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
           ) : (
-            <ImagePlus className="text-slate-300" />
+            <div className="text-center">
+              <ImagePlus className="mx-auto text-slate-300" />
+              <p className="text-[10px] font-bold text-slate-400 mt-1">
+                Añadir fotos/videos
+              </p>
+            </div>
           )}
-          <p className="text-xs font-bold text-slate-400 mt-2">
-            {file ? file.name : "Seleccionar Archivo"}
-          </p>
         </div>
 
         <textarea
-          placeholder="Cuéntame la historia..."
+          placeholder="La historia..."
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full p-4 bg-slate-50 rounded-2xl outline-none resize-none"
+          className="w-full p-4 bg-slate-50 rounded-2xl outline-none italic"
           rows={3}
         />
 
         <button
           type="submit"
-          disabled={!file || uploading}
-          className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold"
+          disabled={uploading || files.length === 0}
+          className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold flex justify-center items-center"
         >
           {uploading ? (
-            <Loader2 className="animate-spin mx-auto" />
+            <Loader2 className="animate-spin" />
           ) : (
-            "Guardar en el Baúl"
+            <>
+              <CheckCircle2 size={18} className="mr-2" /> Guardar Momento
+            </>
           )}
         </button>
       </form>

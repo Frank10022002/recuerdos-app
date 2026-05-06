@@ -1,1 +1,12 @@
 @import "tailwindcss";
+:root {
+  --swiper-theme-color: #ec4899; /* Color Rosa para los puntos */
+  --swiper-navigation-size: 24px;
+}
+.mySwiper .swiper-button-next,
+.mySwiper .swiper-button-prev {
+  color: white;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 30px;
+  border-radius: 50%;
+}
