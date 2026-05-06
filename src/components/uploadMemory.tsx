@@ -19,10 +19,14 @@ export const UploadMemory: React.FC<UploadMemoryProps> = ({ onComplete }) => {
   const [categoria, setCategoria] = useState("Cita");
 
   const categorias = [
+    { id: "Todos", icon: "🌈" },
     { id: "Cita", icon: "🌹" },
     { id: "Viaje", icon: "✈️" },
+    { id: "Diversión", icon: "😂" },
     { id: "Aniversario", icon: "✨" },
     { id: "Comida", icon: "🍕" },
+    { id: "Perro", icon: "🐶" },
+    { id: "Gato", icon: "🐱" },
     { id: "Recuerdo", icon: "📸" },
     { id: "Momentos Random", icon: "🎲" },
   ];

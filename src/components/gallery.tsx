@@ -50,7 +50,6 @@ export const Gallery: React.FC = () => {
   const [selected, setSelected] = useState<Memoria | null>(null);
   const [filtro, setFiltro] = useState("Todos");
 
-  // LISTA DE CATEGORÍAS ACTUALIZADA (CON PERRO Y GATO)
   const categoriasMaster = [
     { id: "Todos", icon: "🌈" },
     { id: "Cita", icon: "🌹" },
@@ -182,7 +181,6 @@ export const Gallery: React.FC = () => {
 
   return (
     <div className="w-full perro">
-      {/* BARRA DE FILTROS */}
       <div className="flex items-center gap-4 mb-10 sticky top-0 z-40 bg-[#fafafb]/80 backdrop-blur-md py-4 overflow-x-auto no-scrollbar px-4">
         <Filter size={16} className="text-slate-400 shrink-0" />
         {categoriasMaster.map((cat) => (
@@ -200,7 +198,6 @@ export const Gallery: React.FC = () => {
         ))}
       </div>
 
-      {/* GALERÍA */}
       {Object.keys(datosCrono)
         .sort((a, b) => Number(b) - Number(a))
         .map((anio) => (
@@ -292,7 +289,6 @@ export const Gallery: React.FC = () => {
           </div>
         ))}
 
-      {/* MODAL DETALLE */}
       <AnimatePresence>
         {selected && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-6">
@@ -316,7 +312,7 @@ export const Gallery: React.FC = () => {
                 <X size={24} />
               </button>
 
-              <div className="w-full md:w-[65%] bg-black relative h-[50vh] md:h-auto border-r border-slate-50 flex items-center justify-center overflow-hidden">
+              <div className="w-full md:w-[65%] bg-black relative h-[50vh] md:h-auto border-r border-slate-50 overflow-hidden flex items-center justify-center">
                 <Swiper
                   modules={[Pagination, Navigation]}
                   pagination={{ clickable: true }}
@@ -326,7 +322,7 @@ export const Gallery: React.FC = () => {
                   {(selected.urls || [selected.url]).map((u, i) => (
                     <SwiperSlide
                       key={i}
-                      className="w-full h-full flex items-center justify-center"
+                      className="w-full h-full flex items-center justify-center bg-black"
                     >
                       {esVideoURL(u || "") || selected.tipo === "video" ? (
                         <video
@@ -357,19 +353,8 @@ export const Gallery: React.FC = () => {
                 </Swiper>
               </div>
 
-              <div className="w-full md:w-[35%] p-8 md:p-12 flex flex-col gap-6 bg-white overflow-y-auto">
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={selected.autorFoto}
-                      className="w-8 h-8 rounded-full border border-white shadow-sm"
-                      alt="autor"
-                    />
-                    <span className="text-xs font-black text-slate-700 uppercase">
-                      {selected.autor}
-                    </span>
-                  </div>
-                  <div className="h-px bg-slate-100" />
+              <div className="w-full md:w-[35%] p-8 md:p-12 flex flex-col gap-6 bg-white overflow-y-auto items-center text-center">
+                <div className="flex flex-col items-center gap-3 w-full">
                   <span className="bg-pink-100 text-pink-600 px-3 py-1 rounded-full text-[9px] font-black uppercase w-fit flex items-center gap-1">
                     {
                       categoriasMaster.find((c) => c.id === selected.categoria)
@@ -377,29 +362,47 @@ export const Gallery: React.FC = () => {
                     }{" "}
                     #{selected.categoria}
                   </span>
-                  <div className="flex items-center gap-2">
-                    <CalendarDays size={18} className="text-pink-300" />
-                    <p className="text-2xl font-serif italic text-slate-800">
-                      {parsearFecha(selected.fecha).toLocaleDateString(
-                        "es-ES",
-                        { day: "numeric", month: "long", year: "numeric" }
-                      )}
-                    </p>
+
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="flex items-center gap-2">
+                      <CalendarDays size={18} className="text-pink-300" />
+                      <p className="text-2xl font-serif italic text-slate-800">
+                        {parsearFecha(selected.fecha).toLocaleDateString(
+                          "es-ES",
+                          { day: "numeric", month: "long", year: "numeric" }
+                        )}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-slate-400 text-xs font-bold bg-slate-50 w-fit px-3 py-1.5 rounded-full border border-slate-100">
+                      <Clock size={12} className="text-pink-300" />
+                      {parsearFecha(selected.fecha).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-slate-400 text-xs font-bold bg-slate-50 w-fit px-3 py-1.5 rounded-full border border-slate-100">
-                    <Clock size={12} className="text-pink-300" />
-                    {parsearFecha(selected.fecha).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+
+                  {/* SECCIÓN DEL AUTOR: ABAJO DE LA HORA Y CENTRADO CON SOMBREADO */}
+                  <div className="flex flex-col items-center gap-2 mt-2 px-6 py-3 bg-white rounded-2xl shadow-lg shadow-slate-100 border border-slate-50">
+                    <img
+                      src={selected.autorFoto}
+                      className="w-10 h-10 rounded-full border-2 border-white shadow-md"
+                      alt="autor"
+                    />
+                    <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">
+                      {selected.autor}
+                    </span>
                   </div>
                 </div>
+
+                <div className="h-px bg-slate-100 w-full" />
 
                 <p className="text-slate-600 text-lg leading-relaxed font-medium italic whitespace-pre-wrap flex-1">
                   "{selected.descripcion}"
                 </p>
 
-                <div className="mt-auto pt-8 flex flex-col items-center">
+                <div className="mt-auto pt-8 flex flex-col items-center w-full">
                   <button
                     onClick={async () => {
                       if (
