@@ -22,6 +22,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Play,
+  Loader2,
 } from "lucide-react";
 
 // Swiper
@@ -45,9 +46,20 @@ interface Memoria {
 
 export const Gallery: React.FC = () => {
   const [memorias, setMemorias] = useState<Memoria[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Se utiliza abajo para el mensaje de carga
   const [selected, setSelected] = useState<Memoria | null>(null);
   const [filtro, setFiltro] = useState("Todos");
+
+  const categoriasMaster = [
+    { id: "Todos", icon: "🌈" },
+    { id: "Cita", icon: "🌹" },
+    { id: "Viaje", icon: "✈️" },
+    { id: "Diversión", icon: "😂" },
+    { id: "Aniversario", icon: "✨" },
+    { id: "Comida", icon: "🍕" },
+    { id: "Recuerdo", icon: "📸" },
+    { id: "Momentos Random", icon: "🎲" },
+  ];
 
   useEffect(() => {
     const q = query(collection(db, "memorias"), orderBy("fecha", "desc"));
@@ -84,15 +96,34 @@ export const Gallery: React.FC = () => {
   }, [memorias]);
 
   const handleFullEdit = async (m: Memoria) => {
+    const opcionesCats = categoriasMaster
+      .filter((c) => c.id !== "Todos")
+      .map(
+        (c) =>
+          `<option value="${c.id}" ${m.categoria === c.id ? "selected" : ""}>${
+            c.icon
+          } ${c.id}</option>`
+      )
+      .join("");
+
     const { value: formValues } = await Swal.fire({
       title: "Editar Recuerdo",
-      html: `<textarea id="swal-desc" class="swal2-textarea" style="border-radius: 15px;">${m.descripcion}</textarea>`,
+      html: `
+        <div style="text-align: left; display: flex; flex-direction: column; gap: 10px;">
+          <label style="font-size: 10px; font-weight: bold; color: #94a3b8;">HISTORIA</label>
+          <textarea id="swal-desc" class="swal2-textarea" style="margin:0; border-radius: 15px;">${m.descripcion}</textarea>
+          <label style="font-size: 10px; font-weight: bold; color: #94a3b8;">CATEGORÍA</label>
+          <select id="swal-cat" class="swal2-select" style="margin:0; width: 100%; border-radius: 15px;">${opcionesCats}</select>
+        </div>
+      `,
       showCancelButton: true,
       confirmButtonColor: "#1e293b",
       preConfirm: () => ({
         descripcion: (
           document.getElementById("swal-desc") as HTMLTextAreaElement
         ).value,
+        categoria: (document.getElementById("swal-cat") as HTMLSelectElement)
+          .value,
       }),
     });
     if (formValues) {
@@ -138,49 +169,39 @@ export const Gallery: React.FC = () => {
     return almanaque;
   }, [memorias, filtro]);
 
-  if (loading)
+  // USO DE LOADING: Si está cargando, mostramos un spinner para que no haya líneas amarillas
+  if (loading) {
     return (
-      <div className="text-center py-20 text-slate-400 italic">
-        Abriendo el baúl...
+      <div className="flex flex-col items-center justify-center py-40 text-slate-400 gap-4">
+        <Loader2 className="animate-spin" size={40} />
+        <p className="italic font-medium">Abriendo el baúl de recuerdos...</p>
       </div>
     );
+  }
 
   return (
     <div className="w-full perro">
-      {" "}
-      {/* Clase perro agregada */}
-      {/* FILTROS */}
       <div className="flex items-center gap-4 mb-10 sticky top-0 z-40 bg-[#fafafb]/80 backdrop-blur-md py-4 overflow-x-auto no-scrollbar px-4">
         <Filter size={16} className="text-slate-400 shrink-0" />
-        {[
-          "Todos",
-          "Cita",
-          "Viaje",
-          "Aniversario",
-          "Comida",
-          "Recuerdo",
-          "Momentos Random",
-        ].map((cat) => (
+        {categoriasMaster.map((cat) => (
           <button
-            key={cat}
-            onClick={() => setFiltro(cat)}
-            className={`px-5 py-2.5 rounded-full text-[10px] font-black border transition-all shrink-0 ${
-              filtro === cat
-                ? "bg-slate-900 text-white"
+            key={cat.id}
+            onClick={() => setFiltro(cat.id)}
+            className={`px-5 py-2.5 rounded-full text-[10px] font-black border transition-all shrink-0 flex items-center gap-2 ${
+              filtro === cat.id
+                ? "bg-slate-900 text-white shadow-xl"
                 : "bg-white text-slate-400 border-slate-100"
             }`}
           >
-            {cat}
+            <span>{cat.icon}</span> {cat.id}
           </button>
         ))}
       </div>
-      {/* GALERÍA */}
+
       {Object.keys(datosCrono)
         .sort((a, b) => Number(b) - Number(a))
         .map((anio) => (
           <div key={anio} className="mt-12 text-left px-4 gato">
-            {" "}
-            {/* Clase gato agregada */}
             <h2 className="text-5xl md:text-7xl font-black text-slate-800/10 mb-8 select-none tracking-tighter">
               {anio}
             </h2>
@@ -218,7 +239,7 @@ export const Gallery: React.FC = () => {
                                   e.stopPropagation();
                                   handleFullEdit(m);
                                 }}
-                                className="absolute top-4 right-4 z-30 p-2.5 bg-white/90 rounded-2xl text-slate-400 opacity-0 group-hover:opacity-100 hover:text-slate-900 transition-all shadow-sm"
+                                className="absolute top-4 right-4 z-30 p-2.5 bg-white/90 rounded-2xl text-slate-400 opacity-0 group-hover:opacity-100 hover:text-slate-900 transition-all"
                               >
                                 <Pencil size={14} />
                               </button>
@@ -247,6 +268,11 @@ export const Gallery: React.FC = () => {
                                   />
                                 )}
                                 <span className="absolute bottom-4 right-4 bg-pink-100 text-pink-600 px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border border-white shadow-sm">
+                                  {
+                                    categoriasMaster.find(
+                                      (c) => c.id === m.categoria
+                                    )?.icon
+                                  }{" "}
                                   #{m.categoria}
                                 </span>
                               </div>
@@ -263,7 +289,7 @@ export const Gallery: React.FC = () => {
             ))}
           </div>
         ))}
-      {/* MODAL DETALLE */}
+
       <AnimatePresence>
         {selected && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-6">
@@ -282,7 +308,7 @@ export const Gallery: React.FC = () => {
             >
               <button
                 onClick={() => setSelected(null)}
-                className="absolute top-6 right-6 z-[110] p-3 bg-white/20 text-white rounded-full hover:bg-white/40 transition-colors backdrop-blur-md border border-white/20"
+                className="absolute top-6 right-6 z-[110] p-3 bg-white/20 text-white rounded-full hover:bg-white/40 backdrop-blur-md transition-all"
               >
                 <X size={24} />
               </button>
@@ -295,32 +321,33 @@ export const Gallery: React.FC = () => {
                   className="w-full h-full"
                 >
                   {(selected.urls || [selected.url]).map((u, i) => (
-                    <SwiperSlide key={i} className="w-full h-full">
-                      <div className="w-full h-full flex items-center justify-center">
-                        {esVideoURL(u || "") || selected.tipo === "video" ? (
-                          <video
-                            src={u}
-                            controls
-                            className="w-full h-full object-contain"
-                            playsInline
-                          />
-                        ) : (
-                          <img
-                            src={u}
-                            className="w-full h-full object-contain"
-                            alt="img"
-                          />
-                        )}
-                      </div>
+                    <SwiperSlide
+                      key={i}
+                      className="w-full h-full flex items-center justify-center bg-black"
+                    >
+                      {esVideoURL(u || "") || selected.tipo === "video" ? (
+                        <video
+                          src={u}
+                          controls
+                          className="w-full h-full object-contain"
+                          playsInline
+                        />
+                      ) : (
+                        <img
+                          src={u}
+                          className="w-full h-full object-contain"
+                          alt="img"
+                        />
+                      )}
                     </SwiperSlide>
                   ))}
                   {(selected.urls?.length ?? 0) > 1 && (
                     <>
-                      <button className="prev-btn absolute left-4 top-1/2 -translate-y-1/2 z-50 p-2 bg-white/10 rounded-full text-white hover:bg-white/20 transition-all">
-                        <ChevronLeft />
+                      <button className="prev-btn absolute left-4 top-1/2 -translate-y-1/2 z-50 p-2 bg-white/10 rounded-full text-white hover:bg-white/20">
+                        <ChevronLeft size={24} />
                       </button>
-                      <button className="next-btn absolute right-4 top-1/2 -translate-y-1/2 z-50 p-2 bg-white/10 rounded-full text-white hover:bg-white/20 transition-all">
-                        <ChevronRight />
+                      <button className="next-btn absolute right-4 top-1/2 -translate-y-1/2 z-50 p-2 bg-white/10 rounded-full text-white hover:bg-white/20">
+                        <ChevronRight size={24} />
                       </button>
                     </>
                   )}
@@ -328,11 +355,22 @@ export const Gallery: React.FC = () => {
               </div>
 
               <div className="w-full md:w-[35%] p-8 md:p-12 flex flex-col gap-6 bg-white overflow-y-auto">
-                <div>
-                  <span className="bg-pink-100 text-pink-600 px-3 py-1 rounded-full text-[9px] font-black uppercase">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={selected.autorFoto}
+                      className="w-8 h-8 rounded-full border border-white shadow-sm"
+                      alt="autor"
+                    />
+                    <span className="text-xs font-black text-slate-700 uppercase">
+                      {selected.autor}
+                    </span>
+                  </div>
+                  <div className="h-px bg-slate-100" />
+                  <span className="bg-pink-100 text-pink-600 px-3 py-1 rounded-full text-[9px] font-black uppercase w-fit">
                     #{selected.categoria}
                   </span>
-                  <div className="flex items-center gap-2 mt-4">
+                  <div className="flex items-center gap-2">
                     <CalendarDays size={18} className="text-pink-300" />
                     <p className="text-2xl font-serif italic text-slate-800">
                       {parsearFecha(selected.fecha).toLocaleDateString(
@@ -341,7 +379,7 @@ export const Gallery: React.FC = () => {
                       )}
                     </p>
                   </div>
-                  <div className="flex items-center gap-2 text-slate-400 text-xs font-bold mt-2 bg-slate-50 w-fit px-3 py-1.5 rounded-full border border-slate-100">
+                  <div className="flex items-center gap-2 text-slate-400 text-xs font-bold bg-slate-50 w-fit px-3 py-1.5 rounded-full border border-slate-100">
                     <Clock size={12} className="text-pink-300" />
                     {parsearFecha(selected.fecha).toLocaleTimeString([], {
                       hour: "2-digit",
@@ -350,23 +388,9 @@ export const Gallery: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="h-px bg-slate-100" />
-
-                <div className="flex flex-col gap-4">
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={selected.autorFoto}
-                      className="w-8 h-8 rounded-full border border-white shadow-sm"
-                      alt="autor"
-                    />
-                    <span className="text-xs font-black text-slate-700 uppercase tracking-tighter">
-                      {selected.autor}
-                    </span>
-                  </div>
-                  <p className="text-slate-600 text-lg leading-relaxed font-medium italic whitespace-pre-wrap">
-                    "{selected.descripcion}"
-                  </p>
-                </div>
+                <p className="text-slate-600 text-lg leading-relaxed font-medium italic whitespace-pre-wrap flex-1">
+                  "{selected.descripcion}"
+                </p>
 
                 <div className="mt-auto pt-8 flex flex-col items-center">
                   <button
