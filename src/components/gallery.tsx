@@ -65,15 +65,16 @@ export const Gallery: React.FC = () => {
     };
 
     if (selected) {
-      // Agregamos un estado al historial para que el botón atrás tenga qué "retroceder"
+      // Agregamos un estado al historial
       window.history.pushState({ modalOpen: true }, "");
       window.addEventListener("popstate", handleBack);
     }
 
     return () => {
       window.removeEventListener("popstate", handleBack);
-      // Si el modal se cierra por clic en la X, limpiamos el historial sobrante
-      if (!selected && window.history.state?.modalOpen) {
+      // CORRECCIÓN: Solo volvemos atrás si el cierre NO fue causado por el botón físico de atrás
+      // Esto evita que el historial se quede "desincronizado"
+      if (selected && window.history.state?.modalOpen) {
         window.history.back();
       }
     };
