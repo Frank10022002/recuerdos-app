@@ -8,7 +8,7 @@ import {
   deleteDoc,
   updateDoc,
 } from "firebase/firestore";
-import { db } from "../firebaseConfig";
+import { db, auth } from "../firebaseConfig";
 import { motion, AnimatePresence } from "framer-motion";
 import Swal from "sweetalert2";
 import confetti from "canvas-confetti";
@@ -32,6 +32,12 @@ import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
 
+interface Reaccion {
+  nombre: string;
+  foto: string;
+  emoji: string;
+}
+
 interface Memoria {
   id: string;
   urls?: string[];
@@ -42,6 +48,7 @@ interface Memoria {
   autor?: string;
   autorFoto?: string;
   categoria?: string;
+  reacciones?: Record<string, Reaccion>;
 }
 
 export const Gallery: React.FC = () => {
@@ -49,6 +56,7 @@ export const Gallery: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Memoria | null>(null);
   const [filtro, setFiltro] = useState("Todos");
+  const [verReacciones, setVerReacciones] = useState(false);
 
   const categoriasMaster = [
     { id: "Todos", icon: "🌈" },
@@ -63,6 +71,8 @@ export const Gallery: React.FC = () => {
     { id: "Momentos Random", icon: "🎲" },
   ];
 
+  const emojisReaccion = ["❤️", "😂", "😮", "😢", "🔥", "🙌"];
+
   useEffect(() => {
     const q = query(collection(db, "memorias"), orderBy("fecha", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -75,7 +85,10 @@ export const Gallery: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!selected) return;
+    if (!selected) {
+      setVerReacciones(false);
+      return;
+    }
     window.history.pushState({ modalOpen: true }, "");
     const handlePopState = () => setSelected(null);
     window.addEventListener("popstate", handlePopState);
@@ -85,17 +98,48 @@ export const Gallery: React.FC = () => {
     };
   }, [selected]);
 
+  // EVENTO MAGIC: Usa confetti cuando se dispara
   useEffect(() => {
     const abrirAzar = () => {
       if (memorias.length > 0) {
         const random = memorias[Math.floor(Math.random() * memorias.length)];
         setSelected(random);
-        confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ["#FFC0CB", "#FF69B4", "#FF1493"],
+        });
       }
     };
     window.addEventListener("magicMemory", abrirAzar);
     return () => window.removeEventListener("magicMemory", abrirAzar);
   }, [memorias]);
+
+  const handleReaccionar = async (mId: string, emoji: string) => {
+    if (!auth.currentUser) return;
+    const user = auth.currentUser;
+    const memoriaRef = doc(db, "memorias", mId);
+    const nuevasReacciones = { ...(selected?.reacciones || {}) };
+
+    if (nuevasReacciones[user.uid]?.emoji === emoji) {
+      delete nuevasReacciones[user.uid];
+    } else {
+      nuevasReacciones[user.uid] = {
+        nombre: user.displayName || "Usuario",
+        foto: user.photoURL || "",
+        emoji: emoji,
+      };
+      // Efecto confetti pequeño al reaccionar
+      confetti({
+        particleCount: 40,
+        spread: 50,
+        origin: { y: 0.8 },
+        ticks: 60,
+      });
+    }
+    await updateDoc(memoriaRef, { reacciones: nuevasReacciones });
+  };
 
   const handleFullEdit = async (m: Memoria) => {
     const opcionesCats = categoriasMaster
@@ -130,12 +174,6 @@ export const Gallery: React.FC = () => {
     });
     if (formValues) {
       await updateDoc(doc(db, "memorias", m.id), formValues);
-      Swal.fire({
-        icon: "success",
-        title: "Actualizado",
-        timer: 1000,
-        showConfirmButton: false,
-      });
     }
   };
 
@@ -230,7 +268,6 @@ export const Gallery: React.FC = () => {
                           const catIcon =
                             categoriasMaster.find((c) => c.id === m.categoria)
                               ?.icon || "📸";
-
                           return (
                             <motion.div
                               key={m.id}
@@ -243,7 +280,7 @@ export const Gallery: React.FC = () => {
                                   e.stopPropagation();
                                   handleFullEdit(m);
                                 }}
-                                className="absolute top-4 right-4 z-30 p-2.5 bg-white/90 rounded-2xl text-slate-400 opacity-0 group-hover:opacity-100 hover:text-slate-900 transition-all"
+                                className="absolute top-4 right-4 z-30 p-2.5 bg-white/90 rounded-2xl text-slate-400 opacity-0 group-hover:opacity-100 hover:text-slate-900 transition-all shadow-sm"
                               >
                                 <Pencil size={14} />
                               </button>
@@ -355,26 +392,17 @@ export const Gallery: React.FC = () => {
 
               <div className="w-full md:w-[35%] p-8 md:p-12 flex flex-col gap-6 bg-white overflow-y-auto items-center text-center">
                 <div className="flex flex-col items-center gap-3 w-full">
-                  <span className="bg-pink-100 text-pink-600 px-3 py-1 rounded-full text-[9px] font-black uppercase w-fit flex items-center gap-1">
-                    {
-                      categoriasMaster.find((c) => c.id === selected.categoria)
-                        ?.icon
-                    }{" "}
-                    #{selected.categoria}
-                  </span>
-
-                  <div className="flex flex-col items-center gap-2">
-                    <div className="flex items-center gap-2">
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="flex items-center gap-2 text-slate-800">
                       <CalendarDays size={18} className="text-pink-300" />
-                      <p className="text-2xl font-serif italic text-slate-800">
+                      <p className="text-2xl font-serif italic">
                         {parsearFecha(selected.fecha).toLocaleDateString(
                           "es-ES",
                           { day: "numeric", month: "long", year: "numeric" }
                         )}
                       </p>
                     </div>
-
-                    <div className="flex items-center gap-2 text-slate-400 text-xs font-bold bg-slate-50 w-fit px-3 py-1.5 rounded-full border border-slate-100">
+                    <div className="flex items-center gap-2 text-slate-400 text-xs font-bold bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
                       <Clock size={12} className="text-pink-300" />
                       {parsearFecha(selected.fecha).toLocaleTimeString([], {
                         hour: "2-digit",
@@ -382,8 +410,6 @@ export const Gallery: React.FC = () => {
                       })}
                     </div>
                   </div>
-
-                  {/* SECCIÓN DEL AUTOR: ABAJO DE LA HORA Y CENTRADO CON SOMBREADO */}
                   <div className="flex flex-col items-center gap-2 mt-2 px-6 py-3 bg-white rounded-2xl shadow-lg shadow-slate-100 border border-slate-50">
                     <img
                       src={selected.autorFoto}
@@ -396,12 +422,66 @@ export const Gallery: React.FC = () => {
                   </div>
                 </div>
 
+                <div className="flex flex-col items-center gap-3 w-full">
+                  <div className="flex gap-2 p-2 bg-slate-50 rounded-full border border-slate-100 shadow-inner">
+                    {emojisReaccion.map((emoji) => (
+                      <button
+                        key={emoji}
+                        onClick={() => handleReaccionar(selected.id, emoji)}
+                        className={`text-xl hover:scale-125 transition-transform p-1 rounded-full ${
+                          selected.reacciones?.[auth.currentUser?.uid || ""]
+                            ?.emoji === emoji
+                            ? "bg-white shadow-sm scale-110"
+                            : ""
+                        }`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setVerReacciones(!verReacciones)}
+                    className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-pink-500 transition-colors"
+                  >
+                    {Object.keys(selected.reacciones || {}).length} Reacciones
+                  </button>
+                  <AnimatePresence>
+                    {verReacciones &&
+                      Object.keys(selected.reacciones || {}).length > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="flex flex-wrap justify-center gap-2 py-2"
+                        >
+                          {Object.entries(selected.reacciones || {}).map(
+                            ([uid, r]) => (
+                              <div
+                                key={uid}
+                                className="flex items-center gap-1 bg-white px-2 py-1 rounded-full border border-slate-100 shadow-sm relative"
+                              >
+                                <img
+                                  src={r.foto}
+                                  className="w-4 h-4 rounded-full"
+                                  alt="r"
+                                />
+                                <span className="text-[8px] font-bold">
+                                  {r.nombre}
+                                </span>
+                                <span className="absolute -top-2 -right-1 text-[10px]">
+                                  {r.emoji}
+                                </span>
+                              </div>
+                            )
+                          )}
+                        </motion.div>
+                      )}
+                  </AnimatePresence>
+                </div>
                 <div className="h-px bg-slate-100 w-full" />
-
                 <p className="text-slate-600 text-lg leading-relaxed font-medium italic whitespace-pre-wrap flex-1">
                   "{selected.descripcion}"
                 </p>
-
                 <div className="mt-auto pt-8 flex flex-col items-center w-full">
                   <button
                     onClick={async () => {
