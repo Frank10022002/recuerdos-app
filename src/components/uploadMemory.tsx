@@ -10,7 +10,7 @@ interface UploadMemoryProps {
 
 export const UploadMemory: React.FC<UploadMemoryProps> = ({ onComplete }) => {
   const [files, setFiles] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
+  const [previews, setPreviews] = useState<{ url: string; tipo: string }[]>([]);
   const [description, setDescription] = useState("");
   const [uploading, setUploading] = useState(false);
   const [manualDate, setManualDate] = useState(
@@ -19,7 +19,6 @@ export const UploadMemory: React.FC<UploadMemoryProps> = ({ onComplete }) => {
   const [categoria, setCategoria] = useState("Cita");
 
   const categorias = [
-    { id: "Todos", icon: "🌈" },
     { id: "Cita", icon: "🌹" },
     { id: "Viaje", icon: "✈️" },
     { id: "Diversión", icon: "😂" },
@@ -35,9 +34,11 @@ export const UploadMemory: React.FC<UploadMemoryProps> = ({ onComplete }) => {
     if (e.target.files) {
       const selectedFiles = Array.from(e.target.files);
       setFiles((prev) => [...prev, ...selectedFiles]);
-      const newPreviews = selectedFiles.map((file) =>
-        URL.createObjectURL(file)
-      );
+
+      const newPreviews = selectedFiles.map((file) => ({
+        url: URL.createObjectURL(file),
+        tipo: file.type.startsWith("video/") ? "video" : "foto",
+      }));
       setPreviews((prev) => [...prev, ...newPreviews]);
     }
   };
@@ -53,7 +54,7 @@ export const UploadMemory: React.FC<UploadMemoryProps> = ({ onComplete }) => {
 
     setUploading(true);
     Swal.fire({
-      title: "Guardando en el baúl...",
+      title: "Guardando momentos...",
       allowOutsideClick: false,
       didOpen: () => Swal.showLoading(),
     });
@@ -71,15 +72,17 @@ export const UploadMemory: React.FC<UploadMemoryProps> = ({ onComplete }) => {
           }
         );
         const data = await res.json();
-        return data.secure_url;
+        return {
+          url: data.secure_url,
+          tipo: file.type.startsWith("video/") ? "video" : "foto",
+        };
       });
 
-      const urls = await Promise.all(uploadPromises);
+      const archivosSubidos = await Promise.all(uploadPromises);
 
       await addDoc(collection(db, "memorias"), {
-        urls,
+        archivos: archivosSubidos,
         descripcion: description,
-        tipo: files[0].type.startsWith("video/") ? "video" : "foto",
         fecha: `${manualDate}T${new Date().toLocaleTimeString("en-GB")}`,
         autor: auth.currentUser.displayName || "Especial",
         autorFoto: auth.currentUser.photoURL || "",
@@ -130,8 +133,8 @@ export const UploadMemory: React.FC<UploadMemoryProps> = ({ onComplete }) => {
               onClick={() => setCategoria(cat.id)}
               className={`px-4 py-2 rounded-2xl text-xs font-bold border transition-all ${
                 categoria === cat.id
-                  ? "bg-pink-500 text-white border-pink-500 shadow-lg shadow-pink-100"
-                  : "bg-slate-50 text-slate-400 border-slate-100"
+                  ? "bg-pink-500 text-white border-pink-500 shadow-lg"
+                  : "bg-slate-50 text-slate-400"
               }`}
             >
               {cat.icon} {cat.id}
@@ -149,23 +152,25 @@ export const UploadMemory: React.FC<UploadMemoryProps> = ({ onComplete }) => {
           />
           {previews.length > 0 ? (
             <div className="flex flex-wrap gap-2 justify-center">
-              {previews.map((src, i) => (
+              {previews.map((p, i) => (
                 <div key={i} className="relative w-16 h-16 group">
-                  {files[i]?.type.startsWith("video/") ? (
+                  {p.tipo === "video" ? (
                     <video
-                      src={src}
+                      src={p.url}
                       className="w-full h-full object-cover rounded-xl border"
+                      preload="metadata"
                     />
                   ) : (
                     <img
-                      src={src}
+                      src={p.url}
                       className="w-full h-full object-cover rounded-xl border"
+                      alt="preview"
                     />
                   )}
                   <button
                     type="button"
                     onClick={() => removeFile(i)}
-                    className="absolute -top-2 -right-2 bg-white rounded-full shadow-md p-1 text-red-500"
+                    className="absolute -top-2 -right-2 bg-white rounded-full shadow-md p-1 text-red-500 z-20"
                   >
                     <X size={12} />
                   </button>
@@ -193,13 +198,13 @@ export const UploadMemory: React.FC<UploadMemoryProps> = ({ onComplete }) => {
         <button
           type="submit"
           disabled={uploading || files.length === 0}
-          className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold flex justify-center items-center shadow-lg shadow-slate-200"
+          className="w-full py-4 bg-slate-900 text-white rounded-2xl font-bold flex justify-center items-center shadow-lg"
         >
           {uploading ? (
             <Loader2 className="animate-spin" />
           ) : (
             <>
-              <CheckCircle2 size={18} className="mr-2" /> Guardar en el Baúl
+              <CheckCircle2 size={18} className="mr-2" /> Guardar Recuerdos
             </>
           )}
         </button>
