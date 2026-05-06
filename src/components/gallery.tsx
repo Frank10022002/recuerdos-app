@@ -46,10 +46,11 @@ interface Memoria {
 
 export const Gallery: React.FC = () => {
   const [memorias, setMemorias] = useState<Memoria[]>([]);
-  const [loading, setLoading] = useState(true); // Se utiliza abajo para el mensaje de carga
+  const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Memoria | null>(null);
   const [filtro, setFiltro] = useState("Todos");
 
+  // LISTA DE CATEGORÍAS ACTUALIZADA (CON PERRO Y GATO)
   const categoriasMaster = [
     { id: "Todos", icon: "🌈" },
     { id: "Cita", icon: "🌹" },
@@ -57,6 +58,8 @@ export const Gallery: React.FC = () => {
     { id: "Diversión", icon: "😂" },
     { id: "Aniversario", icon: "✨" },
     { id: "Comida", icon: "🍕" },
+    { id: "Perro", icon: "🐶" },
+    { id: "Gato", icon: "🐱" },
     { id: "Recuerdo", icon: "📸" },
     { id: "Momentos Random", icon: "🎲" },
   ];
@@ -169,18 +172,17 @@ export const Gallery: React.FC = () => {
     return almanaque;
   }, [memorias, filtro]);
 
-  // USO DE LOADING: Si está cargando, mostramos un spinner para que no haya líneas amarillas
-  if (loading) {
+  if (loading)
     return (
       <div className="flex flex-col items-center justify-center py-40 text-slate-400 gap-4">
         <Loader2 className="animate-spin" size={40} />
-        <p className="italic font-medium">Abriendo el baúl de recuerdos...</p>
+        <p className="italic font-medium">Abriendo el baúl...</p>
       </div>
     );
-  }
 
   return (
     <div className="w-full perro">
+      {/* BARRA DE FILTROS */}
       <div className="flex items-center gap-4 mb-10 sticky top-0 z-40 bg-[#fafafb]/80 backdrop-blur-md py-4 overflow-x-auto no-scrollbar px-4">
         <Filter size={16} className="text-slate-400 shrink-0" />
         {categoriasMaster.map((cat) => (
@@ -198,6 +200,7 @@ export const Gallery: React.FC = () => {
         ))}
       </div>
 
+      {/* GALERÍA */}
       {Object.keys(datosCrono)
         .sort((a, b) => Number(b) - Number(a))
         .map((anio) => (
@@ -227,6 +230,10 @@ export const Gallery: React.FC = () => {
                           const esVideo =
                             esVideoURL(principalURL || "") ||
                             m.tipo === "video";
+                          const catIcon =
+                            categoriasMaster.find((c) => c.id === m.categoria)
+                              ?.icon || "📸";
+
                           return (
                             <motion.div
                               key={m.id}
@@ -267,13 +274,8 @@ export const Gallery: React.FC = () => {
                                     alt="recuerdo"
                                   />
                                 )}
-                                <span className="absolute bottom-4 right-4 bg-pink-100 text-pink-600 px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border border-white shadow-sm">
-                                  {
-                                    categoriasMaster.find(
-                                      (c) => c.id === m.categoria
-                                    )?.icon
-                                  }{" "}
-                                  #{m.categoria}
+                                <span className="absolute bottom-4 right-4 bg-pink-100 text-pink-600 px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest border border-white shadow-sm flex items-center gap-1">
+                                  {catIcon} {m.categoria}
                                 </span>
                               </div>
                               <div className="p-6 text-slate-500 italic text-sm truncate font-medium">
@@ -290,6 +292,7 @@ export const Gallery: React.FC = () => {
           </div>
         ))}
 
+      {/* MODAL DETALLE */}
       <AnimatePresence>
         {selected && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-6">
@@ -313,7 +316,7 @@ export const Gallery: React.FC = () => {
                 <X size={24} />
               </button>
 
-              <div className="w-full md:w-[65%] bg-black relative h-[50vh] md:h-auto border-r border-slate-50 overflow-hidden flex items-center justify-center">
+              <div className="w-full md:w-[65%] bg-black relative h-[50vh] md:h-auto border-r border-slate-50 flex items-center justify-center overflow-hidden">
                 <Swiper
                   modules={[Pagination, Navigation]}
                   pagination={{ clickable: true }}
@@ -323,7 +326,7 @@ export const Gallery: React.FC = () => {
                   {(selected.urls || [selected.url]).map((u, i) => (
                     <SwiperSlide
                       key={i}
-                      className="w-full h-full flex items-center justify-center bg-black"
+                      className="w-full h-full flex items-center justify-center"
                     >
                       {esVideoURL(u || "") || selected.tipo === "video" ? (
                         <video
@@ -367,7 +370,11 @@ export const Gallery: React.FC = () => {
                     </span>
                   </div>
                   <div className="h-px bg-slate-100" />
-                  <span className="bg-pink-100 text-pink-600 px-3 py-1 rounded-full text-[9px] font-black uppercase w-fit">
+                  <span className="bg-pink-100 text-pink-600 px-3 py-1 rounded-full text-[9px] font-black uppercase w-fit flex items-center gap-1">
+                    {
+                      categoriasMaster.find((c) => c.id === selected.categoria)
+                        ?.icon
+                    }{" "}
                     #{selected.categoria}
                   </span>
                   <div className="flex items-center gap-2">
