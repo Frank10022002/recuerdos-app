@@ -146,7 +146,9 @@ export const Gallery: React.FC = () => {
     );
 
   return (
-    <div className="w-full">
+    <div className="w-full perro">
+      {" "}
+      {/* Clase perro agregada */}
       {/* FILTROS */}
       <div className="flex items-center gap-4 mb-10 sticky top-0 z-40 bg-[#fafafb]/80 backdrop-blur-md py-4 overflow-x-auto no-scrollbar px-4">
         <Filter size={16} className="text-slate-400 shrink-0" />
@@ -172,12 +174,13 @@ export const Gallery: React.FC = () => {
           </button>
         ))}
       </div>
-
-      {/* GALERÍA GRID */}
+      {/* GALERÍA */}
       {Object.keys(datosCrono)
         .sort((a, b) => Number(b) - Number(a))
         .map((anio) => (
-          <div key={anio} className="mt-12 text-left px-4">
+          <div key={anio} className="mt-12 text-left px-4 gato">
+            {" "}
+            {/* Clase gato agregada */}
             <h2 className="text-5xl md:text-7xl font-black text-slate-800/10 mb-8 select-none tracking-tighter">
               {anio}
             </h2>
@@ -260,8 +263,7 @@ export const Gallery: React.FC = () => {
             ))}
           </div>
         ))}
-
-      {/* MODAL DETALLE (CORREGIDO) */}
+      {/* MODAL DETALLE */}
       <AnimatePresence>
         {selected && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-6">
@@ -285,8 +287,7 @@ export const Gallery: React.FC = () => {
                 <X size={24} />
               </button>
 
-              {/* ÁREA DE IMAGEN/VIDEO: OCUPA TODO EL LADO IZQUIERDO */}
-              <div className="w-full md:w-[65%] bg-black relative h-[50vh] md:h-auto border-r border-slate-50 flex items-center justify-center overflow-hidden">
+              <div className="w-full md:w-[65%] bg-black relative h-[50vh] md:h-auto border-r border-slate-50 overflow-hidden flex items-center justify-center">
                 <Swiper
                   modules={[Pagination, Navigation]}
                   pagination={{ clickable: true }}
@@ -307,27 +308,25 @@ export const Gallery: React.FC = () => {
                           <img
                             src={u}
                             className="w-full h-full object-contain"
-                            alt="imagen-full"
+                            alt="img"
                           />
                         )}
                       </div>
                     </SwiperSlide>
                   ))}
-
                   {(selected.urls?.length ?? 0) > 1 && (
                     <>
-                      <button className="prev-btn absolute left-4 top-1/2 -translate-y-1/2 z-50 p-3 bg-white/10 rounded-full text-white transition-all hover:bg-white/30 backdrop-blur-sm border border-white/10">
-                        <ChevronLeft size={24} />
+                      <button className="prev-btn absolute left-4 top-1/2 -translate-y-1/2 z-50 p-2 bg-white/10 rounded-full text-white hover:bg-white/20 transition-all">
+                        <ChevronLeft />
                       </button>
-                      <button className="next-btn absolute right-4 top-1/2 -translate-y-1/2 z-50 p-3 bg-white/10 rounded-full text-white transition-all hover:bg-white/30 backdrop-blur-sm border border-white/10">
-                        <ChevronRight size={24} />
+                      <button className="next-btn absolute right-4 top-1/2 -translate-y-1/2 z-50 p-2 bg-white/10 rounded-full text-white hover:bg-white/20 transition-all">
+                        <ChevronRight />
                       </button>
                     </>
                   )}
                 </Swiper>
               </div>
 
-              {/* LADO DERECHO: INFORMACIÓN */}
               <div className="w-full md:w-[35%] p-8 md:p-12 flex flex-col gap-6 bg-white overflow-y-auto">
                 <div>
                   <span className="bg-pink-100 text-pink-600 px-3 py-1 rounded-full text-[9px] font-black uppercase">
@@ -379,7 +378,6 @@ export const Gallery: React.FC = () => {
                             icon: "warning",
                             showCancelButton: true,
                             confirmButtonColor: "#ef4444",
-                            customClass: { popup: "rounded-[32px]" },
                           })
                         ).isConfirmed
                       ) {
