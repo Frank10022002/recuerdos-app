@@ -86,7 +86,7 @@ export const Gallery: React.FC = () => {
 
   useEffect(() => {
     if (!selected) {
-      setVerReacciones(false); // Resetear al cerrar el modal
+      setVerReacciones(false);
       return;
     }
     window.history.pushState({ modalOpen: true }, "");
@@ -119,7 +119,10 @@ export const Gallery: React.FC = () => {
     if (!auth.currentUser) return;
     const user = auth.currentUser;
     const memoriaRef = doc(db, "memorias", mId);
-    const nuevasReacciones = { ...(selected?.reacciones || {}) };
+
+    // Obtenemos la memoria actual del estado para asegurar datos frescos
+    const memoriaActual = memorias.find((m) => m.id === mId);
+    const nuevasReacciones = { ...(memoriaActual?.reacciones || {}) };
 
     if (nuevasReacciones[user.uid]?.emoji === emoji) {
       delete nuevasReacciones[user.uid];
@@ -129,12 +132,7 @@ export const Gallery: React.FC = () => {
         foto: user.photoURL || "",
         emoji: emoji,
       };
-      confetti({
-        particleCount: 40,
-        spread: 50,
-        origin: { y: 0.8 },
-        ticks: 60,
-      });
+      confetti({ particleCount: 40, spread: 50, origin: { y: 0.8 } });
     }
     await updateDoc(memoriaRef, { reacciones: nuevasReacciones });
   };
@@ -150,6 +148,8 @@ export const Gallery: React.FC = () => {
       )
       .join("");
 
+    const fechaSolo = m.fecha.split("T")[0];
+
     const { value: formValues } = await Swal.fire({
       title: "Editar Recuerdo",
       html: `
@@ -158,6 +158,8 @@ export const Gallery: React.FC = () => {
           <textarea id="swal-desc" class="swal2-textarea" style="margin:0; border-radius: 15px;">${m.descripcion}</textarea>
           <label style="font-size: 10px; font-weight: bold; color: #94a3b8;">CATEGORÍA</label>
           <select id="swal-cat" class="swal2-select" style="margin:0; width: 100%; border-radius: 15px;">${opcionesCats}</select>
+          <label style="font-size: 10px; font-weight: bold; color: #94a3b8;">FECHA</label>
+          <input id="swal-date" type="date" class="swal2-input" style="margin:0; width: 100%; border-radius: 15px;" value="${fechaSolo}">
         </div>
       `,
       showCancelButton: true,
@@ -168,6 +170,10 @@ export const Gallery: React.FC = () => {
         ).value,
         categoria: (document.getElementById("swal-cat") as HTMLSelectElement)
           .value,
+        fecha:
+          (document.getElementById("swal-date") as HTMLInputElement).value +
+          "T" +
+          (m.fecha.split("T")[1] || "12:00:00"),
       }),
     });
     if (formValues) {
@@ -437,24 +443,20 @@ export const Gallery: React.FC = () => {
                       </button>
                     ))}
                   </div>
-
-                  {/* CORRECCIÓN AQUÍ: Solo se muestra la lista si verReacciones es true */}
                   <button
                     onClick={() => {
-                      if (!verReacciones) {
+                      if (!verReacciones)
                         confetti({
                           particleCount: 30,
                           spread: 60,
                           origin: { y: 0.7 },
                         });
-                      }
                       setVerReacciones(!verReacciones);
                     }}
                     className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-pink-500 transition-colors"
                   >
                     {Object.keys(selected.reacciones || {}).length} Reacciones
                   </button>
-
                   <AnimatePresence>
                     {verReacciones &&
                       Object.keys(selected.reacciones || {}).length > 0 && (
@@ -473,7 +475,7 @@ export const Gallery: React.FC = () => {
                                 <img
                                   src={r.foto}
                                   className="w-4 h-4 rounded-full"
-                                  alt="avatar"
+                                  alt="r"
                                 />
                                 <span className="text-[8px] font-bold">
                                   {r.nombre}
@@ -488,7 +490,6 @@ export const Gallery: React.FC = () => {
                       )}
                   </AnimatePresence>
                 </div>
-
                 <div className="h-px bg-slate-100 w-full" />
                 <p className="text-slate-600 text-lg leading-relaxed font-medium italic whitespace-pre-wrap flex-1">
                   "{selected.descripcion}"
