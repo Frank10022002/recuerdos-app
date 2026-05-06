@@ -60,7 +60,6 @@ export const Gallery: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  // Fix Historial
   useEffect(() => {
     if (!selected) return;
     window.history.pushState({ modalOpen: true }, "");
@@ -72,7 +71,6 @@ export const Gallery: React.FC = () => {
     };
   }, [selected]);
 
-  // Magic Confetti
   useEffect(() => {
     const abrirAzar = () => {
       if (memorias.length > 0) {
@@ -175,7 +173,7 @@ export const Gallery: React.FC = () => {
         ))}
       </div>
 
-      {/* GALERÍA */}
+      {/* GALERÍA GRID */}
       {Object.keys(datosCrono)
         .sort((a, b) => Number(b) - Number(a))
         .map((anio) => (
@@ -205,7 +203,6 @@ export const Gallery: React.FC = () => {
                           const esVideo =
                             esVideoURL(principalURL || "") ||
                             m.tipo === "video";
-
                           return (
                             <motion.div
                               key={m.id}
@@ -222,7 +219,6 @@ export const Gallery: React.FC = () => {
                               >
                                 <Pencil size={14} />
                               </button>
-
                               <div className="aspect-[4/5] bg-slate-50 overflow-hidden relative">
                                 {esVideo ? (
                                   <div className="w-full h-full relative">
@@ -265,7 +261,7 @@ export const Gallery: React.FC = () => {
           </div>
         ))}
 
-      {/* MODAL DETALLE */}
+      {/* MODAL DETALLE (CORREGIDO) */}
       <AnimatePresence>
         {selected && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-6">
@@ -284,12 +280,13 @@ export const Gallery: React.FC = () => {
             >
               <button
                 onClick={() => setSelected(null)}
-                className="absolute top-6 right-6 z-[110] p-3 bg-slate-50 text-slate-400 rounded-full hover:bg-slate-100"
+                className="absolute top-6 right-6 z-[110] p-3 bg-white/20 text-white rounded-full hover:bg-white/40 transition-colors backdrop-blur-md border border-white/20"
               >
                 <X size={24} />
               </button>
 
-              <div className="w-full md:w-[65%] bg-black flex items-center justify-center h-[45vh] md:h-auto relative border-r border-slate-50">
+              {/* ÁREA DE IMAGEN/VIDEO: OCUPA TODO EL LADO IZQUIERDO */}
+              <div className="w-full md:w-[65%] bg-black relative h-[50vh] md:h-auto border-r border-slate-50 flex items-center justify-center overflow-hidden">
                 <Swiper
                   modules={[Pagination, Navigation]}
                   pagination={{ clickable: true }}
@@ -297,39 +294,40 @@ export const Gallery: React.FC = () => {
                   className="w-full h-full"
                 >
                   {(selected.urls || [selected.url]).map((u, i) => (
-                    <SwiperSlide
-                      key={i}
-                      className="flex items-center justify-center bg-black"
-                    >
-                      {esVideoURL(u || "") || selected.tipo === "video" ? (
-                        <video
-                          src={u}
-                          controls
-                          className="max-h-full max-w-full"
-                          playsInline
-                        />
-                      ) : (
-                        <img
-                          src={u}
-                          className="max-h-full max-w-full object-contain"
-                          alt="img"
-                        />
-                      )}
+                    <SwiperSlide key={i} className="w-full h-full">
+                      <div className="w-full h-full flex items-center justify-center">
+                        {esVideoURL(u || "") || selected.tipo === "video" ? (
+                          <video
+                            src={u}
+                            controls
+                            className="w-full h-full object-contain"
+                            playsInline
+                          />
+                        ) : (
+                          <img
+                            src={u}
+                            className="w-full h-full object-contain"
+                            alt="imagen-full"
+                          />
+                        )}
+                      </div>
                     </SwiperSlide>
                   ))}
+
                   {(selected.urls?.length ?? 0) > 1 && (
                     <>
-                      <button className="prev-btn absolute left-4 top-1/2 -translate-y-1/2 z-50 p-2 bg-white/10 rounded-full text-white transition-colors hover:bg-white/20">
-                        <ChevronLeft />
+                      <button className="prev-btn absolute left-4 top-1/2 -translate-y-1/2 z-50 p-3 bg-white/10 rounded-full text-white transition-all hover:bg-white/30 backdrop-blur-sm border border-white/10">
+                        <ChevronLeft size={24} />
                       </button>
-                      <button className="next-btn absolute right-4 top-1/2 -translate-y-1/2 z-50 p-2 bg-white/10 rounded-full text-white transition-colors hover:bg-white/20">
-                        <ChevronRight />
+                      <button className="next-btn absolute right-4 top-1/2 -translate-y-1/2 z-50 p-3 bg-white/10 rounded-full text-white transition-all hover:bg-white/30 backdrop-blur-sm border border-white/10">
+                        <ChevronRight size={24} />
                       </button>
                     </>
                   )}
                 </Swiper>
               </div>
 
+              {/* LADO DERECHO: INFORMACIÓN */}
               <div className="w-full md:w-[35%] p-8 md:p-12 flex flex-col gap-6 bg-white overflow-y-auto">
                 <div>
                   <span className="bg-pink-100 text-pink-600 px-3 py-1 rounded-full text-[9px] font-black uppercase">
@@ -355,7 +353,6 @@ export const Gallery: React.FC = () => {
 
                 <div className="h-px bg-slate-100" />
 
-                {/* INFO DEL AUTOR */}
                 <div className="flex flex-col gap-4">
                   <div className="flex items-center gap-3">
                     <img
@@ -372,15 +369,13 @@ export const Gallery: React.FC = () => {
                   </p>
                 </div>
 
-                {/* BOTÓN ELIMINAR CENTRADO ABAJO */}
                 <div className="mt-auto pt-8 flex flex-col items-center">
                   <button
                     onClick={async () => {
                       if (
                         (
                           await Swal.fire({
-                            title: "¿Eliminar Recuerdo?",
-                            text: "Esta acción borrará este momento para siempre",
+                            title: "¿Eliminar?",
                             icon: "warning",
                             showCancelButton: true,
                             confirmButtonColor: "#ef4444",
@@ -394,10 +389,10 @@ export const Gallery: React.FC = () => {
                     }}
                     className="flex flex-col items-center gap-2 group"
                   >
-                    <div className="p-4 bg-red-50 text-red-400 rounded-full group-hover:bg-red-100 group-hover:text-red-600 transition-all duration-300">
+                    <div className="p-4 bg-red-50 text-red-400 rounded-full group-hover:bg-red-100 transition-all">
                       <Trash2 size={28} />
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-red-300 group-hover:text-red-500 transition-colors">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-red-300">
                       Eliminar Recuerdo
                     </span>
                   </button>
