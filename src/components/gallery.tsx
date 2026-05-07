@@ -23,7 +23,6 @@ import {
   ChevronRight,
   Play,
   Loader2,
-  Heart,
 } from "lucide-react";
 
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -86,17 +85,6 @@ export const Gallery: React.FC = () => {
     });
     return () => unsubscribe();
   }, []);
-
-  useEffect(() => {
-    if (!selected) return;
-    window.history.pushState({ modalOpen: true }, "");
-    const handlePopState = () => setSelected(null);
-    window.addEventListener("popstate", handlePopState);
-    return () => {
-      window.removeEventListener("popstate", handlePopState);
-      if (window.history.state?.modalOpen) window.history.back();
-    };
-  }, [selected]);
 
   const handleReaccionar = async (mId: string, emoji: string) => {
     if (!auth.currentUser) return;
@@ -221,7 +209,7 @@ export const Gallery: React.FC = () => {
         ))}
       </div>
 
-      {/* Grid */}
+      {/* Grid Cronológico */}
       {Object.keys(datosCrono)
         .sort((a, b) => Number(b) - Number(a))
         .map((anio) => (
@@ -289,14 +277,9 @@ export const Gallery: React.FC = () => {
                                     alt="rec"
                                   />
                                 )}
-                                <div className="absolute top-6 left-6">
-                                  <span className="px-4 py-2 bg-white/90 backdrop-blur-md rounded-2xl text-[9px] font-black uppercase tracking-widest shadow-sm">
-                                    {m.categoria}
-                                  </span>
-                                </div>
                               </div>
                               <div className="p-8">
-                                <p className="text-slate-600 text-sm leading-relaxed italic line-clamp-2 font-medium">
+                                <p className="text-slate-600 text-sm leading-relaxed italic line-clamp-2 font-medium text-center">
                                   "{m.descripcion}"
                                 </p>
                               </div>
@@ -328,9 +311,18 @@ export const Gallery: React.FC = () => {
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="relative bg-white w-full max-w-6xl md:rounded-[60px] overflow-hidden flex flex-col md:flex-row h-full md:h-[85vh] z-50 shadow-2xl"
             >
+              {/* BOTÓN EDITAR (DENTRO DE LA IMAGEN) */}
+              <button
+                onClick={() => handleEdit(selected)}
+                className="absolute top-8 left-8 z-[110] p-4 bg-white/10 text-white rounded-full hover:bg-white/20 backdrop-blur-md transition-all shadow-xl"
+              >
+                <Pencil size={24} />
+              </button>
+
+              {/* BOTÓN CERRAR */}
               <button
                 onClick={() => setSelected(null)}
-                className="absolute top-8 right-8 z-[110] p-4 bg-white/10 text-white rounded-full hover:bg-white/20 backdrop-blur-md transition-all"
+                className="absolute top-8 right-8 z-[110] p-4 bg-white/10 text-white rounded-full hover:bg-white/20 backdrop-blur-md transition-all shadow-xl"
               >
                 <X size={24} />
               </button>
@@ -357,13 +349,13 @@ export const Gallery: React.FC = () => {
                         <video
                           src={archivo.url}
                           controls
-                          className="max-h-full max-w-full"
+                          className="w-full h-full object-cover"
                           playsInline
                         />
                       ) : (
                         <img
                           src={archivo.url}
-                          className="max-h-full max-w-full object-contain"
+                          className="w-full h-full object-cover"
                           alt="media"
                         />
                       )}
@@ -378,17 +370,21 @@ export const Gallery: React.FC = () => {
                 </Swiper>
               </div>
 
-              <div className="w-full md:w-[35%] p-10 flex flex-col bg-white overflow-y-auto">
-                <div className="flex flex-col gap-6 flex-1">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-3 text-2xl font-black text-slate-800 tracking-tighter">
-                      <Calendar className="text-pink-500" size={28} />
-                      {parsearFecha(selected.fecha).toLocaleDateString(
-                        "es-ES",
-                        { day: "numeric", month: "long", year: "numeric" }
-                      )}
+              <div className="w-full md:w-[35%] p-10 flex flex-col bg-white overflow-y-auto items-center">
+                <div className="flex flex-col gap-6 flex-1 w-full items-center">
+                  <div className="space-y-4 text-center">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="p-4 bg-pink-50 rounded-full">
+                        <Calendar className="text-pink-500" size={32} />
+                      </div>
+                      <h2 className="text-2xl font-black text-slate-800 tracking-tighter">
+                        {parsearFecha(selected.fecha).toLocaleDateString(
+                          "es-ES",
+                          { day: "numeric", month: "long", year: "numeric" }
+                        )}
+                      </h2>
                     </div>
-                    <div className="flex items-center gap-2 text-slate-400 text-xs font-black uppercase tracking-widest bg-slate-50 w-fit px-4 py-2 rounded-full border border-slate-100">
+                    <div className="flex items-center gap-2 text-slate-400 text-xs font-black uppercase tracking-widest bg-slate-50 w-fit px-4 py-2 rounded-full border border-slate-100 mx-auto">
                       <Clock size={14} className="text-pink-400" />
                       {parsearFecha(selected.fecha).toLocaleTimeString([], {
                         hour: "2-digit",
@@ -397,29 +393,32 @@ export const Gallery: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-[30px] border border-slate-100">
+                  {/* AUTOR ORIGINAL */}
+                  <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-[30px] border border-slate-100 w-full">
                     <img
                       src={selected.autorFoto}
                       className="w-12 h-12 rounded-full border-2 border-white shadow-sm"
                       alt="autor"
                     />
                     <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">
                         Subido por
                       </p>
-                      <p className="font-black text-slate-800 text-sm">
+                      <p className="font-black text-slate-800 text-sm text-left">
                         {selected.autor}
                       </p>
                     </div>
                   </div>
 
                   <div className="h-px bg-slate-100 w-full" />
-                  <p className="text-slate-600 text-xl italic font-medium leading-relaxed">
+
+                  {/* TEXTO CENTRADO */}
+                  <p className="text-slate-600 text-xl italic font-medium leading-relaxed text-center px-4">
                     "{selected.descripcion}"
                   </p>
 
-                  <div className="mt-auto pt-8">
-                    <div className="flex gap-3 p-4 bg-pink-50/50 rounded-full border border-pink-100 justify-center">
+                  <div className="mt-auto pt-8 w-full">
+                    <div className="flex gap-3 p-4 bg-pink-50/50 rounded-full border border-pink-100 justify-center mb-8">
                       {["❤️", "😂", "🔥", "😮", "🙌"].map((emoji) => (
                         <button
                           key={emoji}
@@ -435,39 +434,33 @@ export const Gallery: React.FC = () => {
                         </button>
                       ))}
                     </div>
-                  </div>
-                </div>
 
-                <div className="flex items-center justify-between mt-8">
-                  <div className="flex gap-4">
+                    {/* BOTÓN ELIMINAR CENTRADO */}
                     <button
-                      onClick={() => handleEdit(selected)}
-                      className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-colors"
+                      onClick={async () => {
+                        const res = await Swal.fire({
+                          title: "¿Eliminar?",
+                          icon: "warning",
+                          showCancelButton: true,
+                          confirmButtonColor: "#ef4444",
+                          confirmButtonText: "Sí",
+                        });
+                        if (res.isConfirmed) {
+                          await deleteDoc(doc(db, "memorias", selected.id));
+                          setSelected(null);
+                        }
+                      }}
+                      className="w-full flex flex-col items-center gap-2 p-6 bg-red-50 text-red-500 rounded-[40px] hover:bg-red-500 hover:text-white transition-all shadow-sm group"
                     >
-                      <Pencil size={14} /> Editar
-                    </button>
-                    <button className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-pink-400 hover:text-pink-600 transition-colors">
-                      <Heart size={14} /> Favorito
+                      <Trash2
+                        size={24}
+                        className="group-hover:scale-110 transition-transform"
+                      />
+                      <span className="text-[10px] font-black uppercase tracking-widest">
+                        Eliminar Recuerdo
+                      </span>
                     </button>
                   </div>
-                  <button
-                    onClick={async () => {
-                      const res = await Swal.fire({
-                        title: "¿Eliminar?",
-                        icon: "warning",
-                        showCancelButton: true,
-                        confirmButtonColor: "#ef4444",
-                        confirmButtonText: "Sí",
-                      });
-                      if (res.isConfirmed) {
-                        await deleteDoc(doc(db, "memorias", selected.id));
-                        setSelected(null);
-                      }
-                    }}
-                    className="p-4 bg-red-50 text-red-400 rounded-full hover:bg-red-500 hover:text-white transition-all shadow-sm"
-                  >
-                    <Trash2 size={20} />
-                  </button>
                 </div>
               </div>
             </motion.div>
