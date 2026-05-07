@@ -242,8 +242,8 @@ export const Gallery: React.FC = () => {
         .sort((a, b) => Number(b) - Number(a))
         .map((anio) => (
           <div key={anio} className="relative mb-32 pt-10">
-            <div className="absolute top-[-10px] left-6 w-full pointer-events-none select-none z-0 opacity-[0.03]">
-              <h2 className="text-[100px] md:text-[180px] font-black leading-none tracking-tighter text-slate-900">
+            <div className="absolute top-[-50px] left w-full pointer-events-none select-none z-0 opacity-[0.1]">
+              <h2 className="text-[150px] md:text-[90px] font-black leading-none tracking-tighter text-slate-900">
                 {anio}
               </h2>
             </div>
@@ -264,9 +264,9 @@ export const Gallery: React.FC = () => {
                     .map((dia) => (
                       <div key={dia} className="mb-16">
                         <div className="flex items-baseline gap-3 mb-8 border-l-4 border-pink-500 pl-4">
-                          <span className="text-2xl font-black text-slate-900 leading-none">
+                          <span className="text-2xl font-bold text-slate-400 italic lowercase">
                             {dia}{" "}
-                            <span className="text-sm font-medium text-slate-400 italic lowercase">
+                            <span className="text-2xl font-bold text-slate-400 italic lowercase">
                               de {mes}
                             </span>
                           </span>
@@ -427,10 +427,14 @@ export const Gallery: React.FC = () => {
                     <div className="p-3 bg-pink-50 rounded-full w-fit mx-auto">
                       <Calendar className="text-pink-500" size={20} />
                     </div>
-                    <h2 className="text-2xl font-bold text-slate-700 tracking-tight">
+                    <h2 className="text-3xl font-black text-slate-800 tracking-tighter">
                       {parsearFecha(selected.fecha).toLocaleDateString(
                         "es-ES",
-                        { day: "numeric", month: "long", year: "numeric" }
+                        {
+                          day: "numeric",
+                          month: "long",
+                          year: "numeric",
+                        }
                       )}
                     </h2>
                     <div className="flex items-center gap-1.5 text-slate-400 text-[15px] font-black uppercase tracking-[0.2em] bg-slate-50 px-4 py-1.5 rounded-full border border-slate-100 w-max mx-auto">
