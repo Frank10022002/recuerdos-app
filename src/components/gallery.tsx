@@ -132,16 +132,32 @@ export const Gallery: React.FC = () => {
     return () => window.removeEventListener("popstate", handlePopState);
   }, [selectedId]);
 
+  // 🧹 LÓGICA DE REACCIONES CORREGIDA Y SIMPLIFICADA
   const handleReaccionar = async (mId: string, emoji: string) => {
     if (!auth.currentUser) return;
     const user = auth.currentUser;
     const memoriaRef = doc(db, "memorias", mId);
     const memoriaActual = memorias.find((m) => m.id === mId);
+
+    // Copiamos las reacciones actuales
     const nuevasReacciones = { ...(memoriaActual?.reacciones || {}) };
 
+    // 1. ELIMINAR EL CLON: Buscamos si hay otra reacción con tu nombre pero distinto ID
+    Object.keys(nuevasReacciones).forEach((uid) => {
+      if (
+        uid !== user.uid &&
+        nuevasReacciones[uid].nombre === user.displayName
+      ) {
+        delete nuevasReacciones[uid];
+      }
+    });
+
+    // 2. LÓGICA NORMAL: Poner o quitar tu reacción real
     if (nuevasReacciones[user.uid]?.emoji === emoji) {
+      // Si ya tenías ese emoji, lo quitamos
       delete nuevasReacciones[user.uid];
     } else {
+      // Si es nuevo, lo agregamos
       nuevasReacciones[user.uid] = {
         nombre: user.displayName || "Usuario",
         foto: user.photoURL || "",
@@ -149,6 +165,8 @@ export const Gallery: React.FC = () => {
       };
       confetti({ particleCount: 30, spread: 60, origin: { y: 0.8 } });
     }
+
+    // Actualizamos Firebase de golpe
     await updateDoc(memoriaRef, { reacciones: nuevasReacciones });
   };
 
@@ -264,8 +282,7 @@ export const Gallery: React.FC = () => {
         .sort((a, b) => Number(b) - Number(a))
         .map((anio) => (
           <div key={anio} className="relative mb-32 pt-10">
-            {/* CORRECCIÓN: Se ha subido 40px más cambiando top-[-20px] por top-[-60px] para que no toque el mes en móvil. */}
-            <div className="absolute top-[-60px] md:top-[-50px] left-0 w-full flex justify-center pointer-events-none select-none z-0 opacity-[0.08] overflow-hidden">
+            <div className="absolute top-[-45px] md:top-[-50px] left-0 w-full flex justify-center pointer-events-none select-none z-0 opacity-[0.08] overflow-hidden">
               <h2 className="text-[85px] md:text-[180px] font-black leading-none tracking-tighter text-slate-900">
                 {anio}
               </h2>
@@ -330,14 +347,19 @@ export const Gallery: React.FC = () => {
                                     </div>
                                     {principal.tipo === "video" ? (
                                       <div className="w-full h-full relative bg-black">
+                                        {/* 🎥 SOLUCIÓN DEFINITIVA DE VIDEO EN IOS 🎥 */}
                                         <video
-                                          src={`${principal.url}#t=0.001`}
+                                          src={principal.url}
                                           className="w-full h-full object-cover"
                                           muted
                                           playsInline
                                           preload="metadata"
+                                          onLoadedData={(e) => {
+                                            // Forzamos manualmente el frame a los 0.1s
+                                            e.currentTarget.currentTime = 0.1;
+                                          }}
                                         />
-                                        <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/10 pointer-events-none">
                                           <div className="w-10 h-10 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center">
                                             <Play
                                               size={20}
@@ -428,10 +450,14 @@ export const Gallery: React.FC = () => {
                     >
                       {arc.tipo === "video" ? (
                         <video
-                          src={`${arc.url}#t=0.001`}
+                          src={arc.url}
                           controls
                           className="w-full h-full object-cover"
                           playsInline
+                          preload="metadata"
+                          onLoadedData={(e) => {
+                            e.currentTarget.currentTime = 0.1;
+                          }}
                         />
                       ) : (
                         <img
@@ -478,8 +504,22 @@ export const Gallery: React.FC = () => {
 
                   <div className="flex items-center justify-center gap-3 p-4 bg-slate-50 rounded-[30px] border border-slate-100 w-full">
                     <img
-                      src={selected.autorFoto}
-                      className="w-10 h-10 rounded-full border-2 border-white shadow-sm"
+                      src={
+                        (auth.currentUser?.displayName === selected.autor
+                          ? auth.currentUser?.photoURL
+                          : selected.autorFoto) ||
+                        `https://ui-avatars.com/api/?name=${
+                          selected.autor || "Usuario"
+                        }&background=fce7f3&color=ec4899`
+                      }
+                      onError={(e) => {
+                        (
+                          e.target as HTMLImageElement
+                        ).src = `https://ui-avatars.com/api/?name=${
+                          selected.autor || "Usuario"
+                        }&background=fce7f3&color=ec4899`;
+                      }}
+                      className="w-10 h-10 rounded-full border-2 border-white shadow-sm object-cover bg-pink-50"
                       alt="autor"
                     />
                     <div className="text-left">
@@ -554,26 +594,45 @@ export const Gallery: React.FC = () => {
                             >
                               <div className="flex flex-wrap justify-center gap-3 pt-4 pb-2 border-t border-slate-100 mt-4">
                                 {Object.entries(selected.reacciones || {}).map(
-                                  ([uid, r]) => (
-                                    <motion.div
-                                      initial={{ scale: 0.9, opacity: 0 }}
-                                      animate={{ scale: 1, opacity: 1 }}
-                                      key={uid}
-                                      className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-slate-100 shadow-sm relative text-[11px] font-black uppercase tracking-tight"
-                                    >
-                                      <img
-                                        src={r.foto}
-                                        className="w-6 h-6 rounded-full border border-pink-100"
-                                        alt="r"
-                                      />
-                                      <span className="text-slate-700">
-                                        {r.nombre}
-                                      </span>
-                                      <span className="absolute -top-2.5 -right-1.5 text-[14px] drop-shadow-sm">
-                                        {r.emoji}
-                                      </span>
-                                    </motion.div>
-                                  )
+                                  ([uid, r]) => {
+                                    const fotoActualizada =
+                                      auth.currentUser?.uid === uid
+                                        ? auth.currentUser?.photoURL
+                                        : r.foto;
+
+                                    return (
+                                      <motion.div
+                                        initial={{ scale: 0.9, opacity: 0 }}
+                                        animate={{ scale: 1, opacity: 1 }}
+                                        key={uid}
+                                        className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-slate-100 shadow-sm relative text-[11px] font-black uppercase tracking-tight"
+                                      >
+                                        <img
+                                          src={
+                                            fotoActualizada ||
+                                            `https://ui-avatars.com/api/?name=${
+                                              r.nombre || "Usuario"
+                                            }&background=fce7f3&color=ec4899`
+                                          }
+                                          onError={(e) => {
+                                            (
+                                              e.target as HTMLImageElement
+                                            ).src = `https://ui-avatars.com/api/?name=${
+                                              r.nombre || "Usuario"
+                                            }&background=fce7f3&color=ec4899`;
+                                          }}
+                                          className="w-6 h-6 rounded-full border border-pink-100 object-cover bg-pink-50"
+                                          alt="r"
+                                        />
+                                        <span className="text-slate-700">
+                                          {r.nombre}
+                                        </span>
+                                        <span className="absolute -top-2.5 -right-1.5 text-[14px] drop-shadow-sm">
+                                          {r.emoji}
+                                        </span>
+                                      </motion.div>
+                                    );
+                                  }
                                 )}
                               </div>
                             </motion.div>
