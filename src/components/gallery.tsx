@@ -61,6 +61,7 @@ export const Gallery: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Memoria | null>(null);
   const [filtro, setFiltro] = useState("Todos");
+  const [verReacciones, setVerReacciones] = useState(false);
 
   const categoriasMaster = [
     { id: "Todos", icon: "🌈" },
@@ -75,7 +76,6 @@ export const Gallery: React.FC = () => {
     { id: "Momentos Random", icon: "🎲" },
   ];
 
-  // --- ESCUCHADOR DE EVENTO MÁGICO (Para App.tsx) ---
   useEffect(() => {
     const handleMagic = () => {
       if (memorias.length > 0) {
@@ -137,15 +137,20 @@ export const Gallery: React.FC = () => {
 
     const { value: formValues } = await Swal.fire({
       title: "Editar Momento",
-      html: `<textarea id="swal-desc" class="swal2-textarea" style="border-radius: 15px;">${
-        m.descripcion
-      }</textarea>
-             <select id="swal-cat" class="swal2-select" style="border-radius: 15px;">${opcionesCats}</select>
-             <input id="swal-date" type="date" class="swal2-input" style="border-radius: 15px;" value="${
-               m.fecha.split("T")[0]
-             }">`,
+      html: `
+        <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%;">
+          <label style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase; align-self: start; margin-left: 10%;">Historia</label>
+          <textarea id="swal-desc" class="swal2-textarea" style="margin:0; width: 80%; border-radius: 12px; font-size: 13px; resize: none;">${
+            m.descripcion
+          }</textarea>
+          <label style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase; align-self: start; margin-left: 10%;">Categoría</label>
+          <select id="swal-cat" class="swal2-select" style="margin:0; width: 80%; border-radius: 12px;">${opcionesCats}</select>
+          <label style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase; align-self: start; margin-left: 10%;">Fecha</label>
+          <input id="swal-date" type="date" class="swal2-input" style="margin:0; width: 80%; border-radius: 12px;" value="${
+            m.fecha.split("T")[0]
+          }">
+        </div>`,
       showCancelButton: true,
-      confirmButtonText: "Guardar",
       confirmButtonColor: "#1e293b",
       preConfirm: () => ({
         descripcion: (
@@ -155,8 +160,7 @@ export const Gallery: React.FC = () => {
           .value,
         fecha:
           (document.getElementById("swal-date") as HTMLInputElement).value +
-          "T" +
-          (m.fecha.split("T")[1] || "12:00:00"),
+          "T12:00:00",
       }),
     });
     if (formValues) await updateDoc(doc(db, "memorias", m.id), formValues);
@@ -203,18 +207,16 @@ export const Gallery: React.FC = () => {
 
   return (
     <div className="w-full max-w-7xl mx-auto pb-20 px-4">
-      <div className="flex items-center gap-3 mb-20 sticky top-0 z-40 bg-[#fafafb]/95 backdrop-blur-md py-6 overflow-x-auto no-scrollbar border-b border-slate-100">
-        <div className="p-3 bg-white rounded-2xl shadow-sm border border-slate-100 shrink-0">
-          <Filter size={18} className="text-pink-500" />
-        </div>
+      <div className="flex items-center gap-3 mb-10 sticky top-0 z-40 bg-[#fafafb]/95 backdrop-blur-md py-4 overflow-x-auto no-scrollbar border-b border-slate-100 px-2">
+        <Filter size={16} className="text-slate-400 shrink-0" />
         {categoriasMaster.map((cat) => (
           <button
             key={cat.id}
             onClick={() => setFiltro(cat.id)}
-            className={`px-6 py-3 rounded-2xl text-[11px] font-black transition-all shrink-0 flex items-center gap-2 border shadow-sm ${
+            className={`px-5 py-2 rounded-full text-[10px] font-black transition-all shrink-0 flex items-center gap-2 border ${
               filtro === cat.id
-                ? "bg-slate-900 text-white border-slate-900 shadow-xl"
-                : "bg-white text-slate-500 border-slate-100"
+                ? "bg-slate-900 text-white shadow-lg"
+                : "bg-white text-slate-400 border-slate-100"
             }`}
           >
             <span>{cat.icon}</span> {cat.id}
@@ -225,133 +227,102 @@ export const Gallery: React.FC = () => {
       {Object.keys(datosCrono)
         .sort((a, b) => Number(b) - Number(a))
         .map((anio) => (
-          <div key={anio} className="relative mb-32 pt-10">
-            <div className="absolute top-0 left-0 w-full pointer-events-none select-none z-0 opacity-[0.03]">
-              <h2 className="text-[150px] md:text-[250px] font-black leading-none tracking-tighter text-slate-900">
-                {anio}
-              </h2>
-            </div>
-
-            <div className="relative z-10">
-              {Object.keys(datosCrono[anio]).map((mes) => (
-                <div key={mes} className="mb-24">
-                  <div className="flex items-center gap-6 mb-16">
-                    <div className="bg-pink-500 text-white px-8 py-3 rounded-[20px] shadow-lg shadow-pink-100 flex items-center gap-2">
-                      <Sparkles size={16} className="text-pink-200" />
-                      <span className="text-[12px] font-black uppercase tracking-[0.4em]">
-                        {mes}
-                      </span>
-                    </div>
-                    <div className="h-[2px] flex-1 bg-gradient-to-r from-pink-200 to-transparent"></div>
-                  </div>
-
+          <div key={anio} className="mb-20">
+            <h2 className="text-6xl font-black text-slate-800/5 mb-10 tracking-tighter">
+              {anio}
+            </h2>
+            {Object.keys(datosCrono[anio]).map((mes) => (
+              <div key={mes} className="mb-12 border-l-4 border-pink-50 pl-6">
+                <div className="flex items-center gap-2 mb-8 bg-pink-500 text-white px-6 py-2 rounded-full w-fit shadow-md">
+                  <Sparkles size={14} />
+                  <span className="text-[10px] font-black uppercase tracking-widest">
+                    {mes}
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                   {Object.keys(datosCrono[anio][mes])
                     .sort((a, b) => Number(b) - Number(a))
-                    .map((dia) => (
-                      <div key={dia} className="mb-20">
-                        <div className="flex items-baseline gap-3 mb-10 border-l-8 border-pink-500 pl-6">
-                          <span className="text-4xl font-black text-slate-900 leading-none">
-                            {dia}{" "}
-                            <span className="text-xl font-medium text-slate-400 italic lowercase">
-                              de {mes} de {anio}
-                            </span>
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
-                          {datosCrono[anio][mes][dia].fotos.map(
-                            (m: Memoria) => {
-                              const principal = m.archivos
-                                ? m.archivos[0]
-                                : { url: m.urls?.[0] || m.url, tipo: m.tipo };
-                              return (
-                                <motion.div
-                                  key={m.id}
-                                  whileHover={{ y: -12, scale: 1.02 }}
-                                  className="group relative bg-white rounded-[55px] overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.06)] border-4 border-white cursor-pointer"
-                                  onClick={() => setSelected(m)}
-                                >
-                                  <div className="aspect-square bg-slate-100 overflow-hidden relative">
-                                    <div className="absolute top-6 right-6 z-20 text-white/50 group-hover:text-pink-500 transition-colors">
-                                      <Heart size={24} fill="currentColor" />
-                                    </div>
-                                    {principal.tipo === "video" ? (
-                                      <div className="w-full h-full relative">
-                                        <video
-                                          src={principal.url}
-                                          className="w-full h-full object-cover"
-                                          muted
-                                          playsInline
-                                        />
-                                        <div className="absolute inset-0 flex items-center justify-center bg-black/10">
-                                          <div className="w-14 h-14 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center">
-                                            <Play
-                                              size={28}
-                                              className="text-white ml-1"
-                                              fill="white"
-                                            />
-                                          </div>
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <img
-                                        src={principal.url}
-                                        className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
-                                        alt="img"
-                                      />
-                                    )}
-                                  </div>
-                                  <div className="p-10">
-                                    <p className="text-slate-600 text-sm leading-relaxed italic line-clamp-2 font-medium text-center italic line-clamp-2 font-medium text-center">
-                                      "{m.descripcion}"
-                                    </p>
-                                  </div>
-                                </motion.div>
-                              );
-                            }
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                    .map((dia) =>
+                      datosCrono[anio][mes][dia].fotos.map((m: Memoria) => {
+                        const principal = m.archivos
+                          ? m.archivos[0]
+                          : { url: m.urls?.[0] || m.url, tipo: m.tipo };
+                        return (
+                          <motion.div
+                            key={m.id}
+                            whileHover={{ y: -8 }}
+                            onClick={() => setSelected(m)}
+                            className="group relative bg-white rounded-[40px] overflow-hidden shadow-xl border border-white cursor-pointer"
+                          >
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEdit(m);
+                              }}
+                              className="absolute top-4 right-4 z-30 p-2 bg-white/90 rounded-full text-slate-400 opacity-0 group-hover:opacity-100 hover:text-slate-900 shadow-sm"
+                            >
+                              <Pencil size={12} />
+                            </button>
+                            <div className="aspect-square bg-slate-100 overflow-hidden relative">
+                              {principal.tipo === "video" ? (
+                                <div className="w-full h-full relative bg-black">
+                                  <video
+                                    src={principal.url}
+                                    className="w-full h-full object-cover"
+                                    muted
+                                    playsInline
+                                    preload="metadata"
+                                  />
+                                  <Play
+                                    size={30}
+                                    className="absolute inset-0 m-auto text-white opacity-80"
+                                  />
+                                </div>
+                              ) : (
+                                <img
+                                  src={principal.url}
+                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                  alt="mem"
+                                />
+                              )}
+                            </div>
+                            <div className="p-5 text-slate-500 italic text-[11px] truncate text-center font-medium">
+                              "{m.descripcion}"
+                            </div>
+                          </motion.div>
+                        );
+                      })
+                    )}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         ))}
 
       <AnimatePresence>
         {selected && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-10">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-6">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelected(null)}
-              className="absolute inset-0 bg-slate-900/95 backdrop-blur-3xl"
+              className="absolute inset-0 bg-black/95 backdrop-blur-xl"
             />
             <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="relative bg-white w-full max-w-6xl md:rounded-[60px] overflow-hidden flex flex-col md:flex-row h-full md:h-[85vh] z-50 shadow-2xl"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="relative bg-white w-full max-w-5xl md:rounded-[40px] overflow-hidden flex flex-col md:flex-row h-full md:h-[85vh] z-50"
             >
               <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleEdit(selected);
-                }}
-                className="absolute top-8 left-8 z-[110] p-4 bg-black/40 text-white rounded-full hover:bg-black/60 backdrop-blur-xl shadow-xl transition-all"
-              >
-                <Pencil size={24} />
-              </button>
-              <button
                 onClick={() => setSelected(null)}
-                className="absolute top-8 right-8 z-[110] p-4 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200 shadow-xl transition-all"
+                className="absolute top-4 right-4 z-[110] p-3 bg-black/20 text-white rounded-full hover:bg-black/40"
               >
-                <X size={24} />
+                <X size={20} />
               </button>
 
-              <div className="w-full md:w-[65%] bg-black relative h-[45vh] md:h-auto overflow-hidden">
+              <div className="w-full md:w-[60%] bg-black relative h-[45vh] md:h-auto flex items-center justify-center">
                 <Swiper
                   modules={[Pagination, Navigation]}
                   pagination={{ clickable: true }}
@@ -364,123 +335,148 @@ export const Gallery: React.FC = () => {
                       url: u,
                       tipo: selected.tipo,
                     }))
-                  ).map((archivo: any, i: number) => (
+                  ).map((arc: any, i: number) => (
                     <SwiperSlide
                       key={i}
-                      className="flex items-center justify-center overflow-hidden"
+                      className="flex items-center justify-center bg-black"
                     >
-                      {archivo.tipo === "video" ? (
+                      {arc.tipo === "video" ? (
                         <video
-                          src={archivo.url}
+                          src={arc.url}
                           controls
-                          className="w-full h-full object-cover"
+                          className="max-w-full max-h-full object-contain"
+                          playsInline
                         />
                       ) : (
                         <img
-                          src={archivo.url}
-                          className="w-full h-full object-cover"
-                          alt="media"
+                          src={arc.url}
+                          className="max-w-full max-h-full object-contain"
+                          alt="img"
                         />
                       )}
                     </SwiperSlide>
                   ))}
-                  <button className="next-btn absolute right-6 top-1/2 -translate-y-1/2 z-50 p-5 bg-white/20 rounded-full text-white hover:bg-white/40 backdrop-blur-lg transition-all">
-                    <ChevronRight size={28} />
+                  <button className="prev-btn absolute left-3 top-1/2 -translate-y-1/2 z-50 p-2 text-white">
+                    <ChevronLeft size={20} />
                   </button>
-                  <button className="prev-btn absolute left-6 top-1/2 -translate-y-1/2 z-50 p-5 bg-white/20 rounded-full text-white hover:bg-white/40 backdrop-blur-lg transition-all">
-                    <ChevronLeft size={28} />
+                  <button className="next-btn absolute right-3 top-1/2 -translate-y-1/2 z-50 p-2 text-white">
+                    <ChevronRight size={20} />
                   </button>
                 </Swiper>
               </div>
 
-              <div className="w-full md:w-[35%] p-12 flex flex-col bg-white overflow-y-auto items-center">
-                <div className="flex flex-col gap-10 flex-1 w-full items-center">
-                  <div className="space-y-4 text-center">
-                    <div className="p-6 bg-pink-50 rounded-full w-fit mx-auto">
-                      <Calendar className="text-pink-500" size={36} />
-                    </div>
-                    <h2 className="text-3xl font-black text-slate-800 tracking-tighter">
-                      {parsearFecha(selected.fecha).toLocaleDateString(
-                        "es-ES",
-                        { day: "numeric", month: "long", year: "numeric" }
-                      )}
-                    </h2>
-                    <div className="flex items-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] bg-slate-50 w-fit px-5 py-2 rounded-full border border-slate-100 mx-auto">
-                      <Clock size={14} className="text-pink-400" />
-                      {parsearFecha(selected.fecha).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 p-5 bg-slate-50 rounded-[35px] border border-slate-100 w-full text-left">
+              <div className="w-full md:w-[40%] p-8 flex flex-col items-center text-center bg-white overflow-y-auto">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="flex items-center gap-2 bg-slate-50 px-4 py-1.5 rounded-xl border border-slate-100 shadow-inner">
                     <img
-                      src={selected.autorFoto}
-                      className="w-14 h-14 rounded-full border-4 border-white shadow-lg"
+                      src={`${selected.autorFoto}?t=${Date.now()}`}
+                      className="w-7 h-7 rounded-full border border-pink-100"
                       alt="autor"
                     />
-                    <div>
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        Subido por
-                      </p>
-                      <p className="font-black text-slate-800 text-base">
-                        {selected.autor}
-                      </p>
-                    </div>
+                    <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">
+                      {selected.autor}
+                    </span>
                   </div>
-                  <p className="text-slate-600 text-xl italic font-medium leading-relaxed text-center px-4">
-                    "{selected.descripcion}"
-                  </p>
-                  <div className="mt-auto pt-10 w-full space-y-8">
-                    <div className="flex gap-4 p-5 bg-pink-50/50 rounded-full border border-pink-100 justify-center">
-                      {["❤️", "😂", "🔥", "😮", "🙌"].map((emoji) => (
-                        <button
-                          key={emoji}
-                          onClick={() => handleReaccionar(selected.id, emoji)}
-                          className={`text-3xl hover:scale-125 transition-transform p-1 ${
-                            selected.reacciones?.[auth.currentUser?.uid || ""]
-                              ?.emoji === emoji
-                              ? "bg-white shadow-xl rounded-full scale-110"
-                              : ""
-                          }`}
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                      <div className="w-[1px] h-8 bg-pink-200 mx-1" />
-                      <Heart
-                        size={28}
-                        className="text-pink-500"
-                        fill="currentColor"
-                      />
-                    </div>
+                  <div className="flex items-center gap-2 text-xl font-serif italic text-slate-800">
+                    <Calendar className="text-pink-300" size={18} />
+                    {parsearFecha(selected.fecha).toLocaleDateString("es-ES", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-400 text-[10px] font-black uppercase bg-slate-50 px-3 py-1 rounded-full border">
+                    <Clock size={12} className="text-pink-400" />
+                    {parsearFecha(selected.fecha).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </div>
+                </div>
+
+                <div className="flex gap-1.5 p-3 mt-4 bg-slate-50 rounded-full border border-slate-100 shadow-inner relative group/reactions">
+                  {["❤️", "😂", "🔥", "😮", "🙌"].map((emoji) => (
                     <button
-                      onClick={async () => {
-                        const res = await Swal.fire({
+                      key={emoji}
+                      onClick={() => handleReaccionar(selected.id, emoji)}
+                      className={`text-xl hover:scale-125 transition-transform ${
+                        selected.reacciones?.[auth.currentUser?.uid || ""]
+                          ?.emoji === emoji
+                          ? "bg-white shadow-sm scale-110 rounded-full"
+                          : ""
+                      }`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                  <div className="absolute -right-8 top-1/2 -translate-y-1/2 text-pink-200">
+                    <Heart size={16} fill="currentColor" />
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setVerReacciones(!verReacciones)}
+                  className="text-[8px] font-black uppercase text-slate-400 mt-1 mb-4 hover:text-pink-500"
+                >
+                  {Object.keys(selected.reacciones || {}).length} Reacciones
+                </button>
+
+                <AnimatePresence>
+                  {verReacciones &&
+                    Object.keys(selected.reacciones || {}).length > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="flex flex-wrap justify-center gap-2 py-2 overflow-hidden"
+                      >
+                        {Object.entries(selected.reacciones || {}).map(
+                          ([uid, r]) => (
+                            <div
+                              key={uid}
+                              className="flex items-center gap-1 bg-white px-2 py-1 rounded-full border border-slate-100 shadow-sm relative text-[8px] font-bold"
+                            >
+                              <img
+                                src={r.foto}
+                                className="w-4 h-4 rounded-full"
+                                alt="r"
+                              />
+                              {r.nombre}
+                              <span className="absolute -top-2 -right-1 text-[10px]">
+                                {r.emoji}
+                              </span>
+                            </div>
+                          )
+                        )}
+                      </motion.div>
+                    )}
+                </AnimatePresence>
+
+                <p className="text-slate-600 text-base leading-relaxed flex-1 italic overflow-y-auto font-medium py-4">
+                  "{selected.descripcion}"
+                </p>
+
+                <button
+                  onClick={async () => {
+                    if (
+                      (
+                        await Swal.fire({
                           title: "¿Eliminar?",
-                          text: "Se borrará definitivamente",
                           icon: "warning",
                           showCancelButton: true,
                           confirmButtonColor: "#ef4444",
-                          confirmButtonText: "Eliminar",
-                        });
-                        if (res.isConfirmed) {
-                          await deleteDoc(doc(db, "memorias", selected.id));
-                          setSelected(null);
-                        }
-                      }}
-                      className="w-full flex flex-col items-center gap-2 p-8 bg-red-50 text-red-500 rounded-[40px] hover:bg-red-500 hover:text-white transition-all shadow-sm group"
-                    >
-                      <Trash2
-                        size={24}
-                        className="group-hover:rotate-12 transition-transform"
-                      />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-center">
-                        Borrar del baúl
-                      </span>
-                    </button>
-                  </div>
-                </div>
+                          customClass: { popup: "rounded-[32px]" },
+                        })
+                      ).isConfirmed
+                    ) {
+                      await deleteDoc(doc(db, "memorias", selected.id));
+                      setSelected(null);
+                    }
+                  }}
+                  className="mt-8 p-3 bg-red-50 text-red-400 rounded-full hover:bg-red-100 shadow-sm"
+                >
+                  <Trash2 size={24} />
+                </button>
               </div>
             </motion.div>
           </div>
