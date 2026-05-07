@@ -63,9 +63,9 @@ export const Gallery: React.FC = () => {
   const [filtro, setFiltro] = useState("Todos");
 
   const categoriasMaster = [
-    { id: "Todos", icon: "" },
-    { id: "Cita", icon: "" },
-    { id: "Viaje", icon: "" },
+    { id: "Todos", icon: "🌈" },
+    { id: "Cita", icon: "🌹" },
+    { id: "Viaje", icon: "✈️" },
     { id: "Diversión", icon: "😂" },
     { id: "Aniversario", icon: "✨" },
     { id: "Comida", icon: "🍕" },
@@ -75,7 +75,7 @@ export const Gallery: React.FC = () => {
     { id: "Momentos Random", icon: "🎲" },
   ];
 
-  // --- 1. LÓGICA PARA RECUERDO ALEATORIO (ESCUCHA A APP.TSX) ---
+  // --- ESCUCHADOR DE EVENTO MÁGICO (Para App.tsx) ---
   useEffect(() => {
     const handleMagic = () => {
       if (memorias.length > 0) {
@@ -87,11 +87,8 @@ export const Gallery: React.FC = () => {
           origin: { y: 0.6 },
           colors: ["#ec4899", "#f43f5e", "#ffffff"],
         });
-      } else {
-        Swal.fire("Baúl vacío", "Aún no hay recuerdos para mostrar", "info");
       }
     };
-    // Escucha el evento que dispara App.tsx
     window.addEventListener("magicMemory", handleMagic);
     return () => window.removeEventListener("magicMemory", handleMagic);
   }, [memorias]);
@@ -140,15 +137,13 @@ export const Gallery: React.FC = () => {
 
     const { value: formValues } = await Swal.fire({
       title: "Editar Momento",
-      html: `
-        <textarea id="swal-desc" class="swal2-textarea" style="border-radius: 15px;">${
-          m.descripcion
-        }</textarea>
-        <select id="swal-cat" class="swal2-select" style="border-radius: 15px;">${opcionesCats}</select>
-        <input id="swal-date" type="date" class="swal2-input" style="border-radius: 15px;" value="${
-          m.fecha.split("T")[0]
-        }">
-      `,
+      html: `<textarea id="swal-desc" class="swal2-textarea" style="border-radius: 15px;">${
+        m.descripcion
+      }</textarea>
+             <select id="swal-cat" class="swal2-select" style="border-radius: 15px;">${opcionesCats}</select>
+             <input id="swal-date" type="date" class="swal2-input" style="border-radius: 15px;" value="${
+               m.fecha.split("T")[0]
+             }">`,
       showCancelButton: true,
       confirmButtonText: "Guardar",
       confirmButtonColor: "#1e293b",
@@ -164,7 +159,6 @@ export const Gallery: React.FC = () => {
           (m.fecha.split("T")[1] || "12:00:00"),
       }),
     });
-
     if (formValues) await updateDoc(doc(db, "memorias", m.id), formValues);
   };
 
@@ -179,7 +173,6 @@ export const Gallery: React.FC = () => {
       filtro === "Todos"
         ? memorias
         : memorias.filter((m) => m.categoria === filtro);
-
     filtradas.forEach((m) => {
       const d = parsearFecha(m.fecha);
       const anio = d.getFullYear();
@@ -203,14 +196,13 @@ export const Gallery: React.FC = () => {
       <div className="flex flex-col items-center justify-center py-40 gap-4">
         <Loader2 className="animate-spin text-pink-500" size={48} />
         <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest text-center">
-          Cargando...
+          Organizando recuerdos...
         </p>
       </div>
     );
 
   return (
     <div className="w-full max-w-7xl mx-auto pb-20 px-4">
-      {/* Barra de Filtros */}
       <div className="flex items-center gap-3 mb-20 sticky top-0 z-40 bg-[#fafafb]/95 backdrop-blur-md py-6 overflow-x-auto no-scrollbar border-b border-slate-100">
         <div className="p-3 bg-white rounded-2xl shadow-sm border border-slate-100 shrink-0">
           <Filter size={18} className="text-pink-500" />
@@ -222,7 +214,7 @@ export const Gallery: React.FC = () => {
             className={`px-6 py-3 rounded-2xl text-[11px] font-black transition-all shrink-0 flex items-center gap-2 border shadow-sm ${
               filtro === cat.id
                 ? "bg-slate-900 text-white border-slate-900 shadow-xl"
-                : "bg-white text-slate-500 border-slate-100 hover:border-pink-200"
+                : "bg-white text-slate-500 border-slate-100"
             }`}
           >
             <span>{cat.icon}</span> {cat.id}
@@ -230,12 +222,10 @@ export const Gallery: React.FC = () => {
         ))}
       </div>
 
-      {/* --- 2. CRONOLOGÍA CORREGIDA --- */}
       {Object.keys(datosCrono)
         .sort((a, b) => Number(b) - Number(a))
         .map((anio) => (
           <div key={anio} className="relative mb-32 pt-10">
-            {/* Año de fondo absoluto (Z-0) */}
             <div className="absolute top-0 left-0 w-full pointer-events-none select-none z-0 opacity-[0.03]">
               <h2 className="text-[150px] md:text-[250px] font-black leading-none tracking-tighter text-slate-900">
                 {anio}
@@ -259,7 +249,6 @@ export const Gallery: React.FC = () => {
                     .sort((a, b) => Number(b) - Number(a))
                     .map((dia) => (
                       <div key={dia} className="mb-20">
-                        {/* FECHA FORMATEADA LARGA: "6 de Mayo de 2026" */}
                         <div className="flex items-baseline gap-3 mb-10 border-l-8 border-pink-500 pl-6">
                           <span className="text-4xl font-black text-slate-900 leading-none">
                             {dia}{" "}
@@ -294,7 +283,7 @@ export const Gallery: React.FC = () => {
                                           muted
                                           playsInline
                                         />
-                                        <div className="absolute inset-0 flex items-center justify-center bg-black/10 transition-all">
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/10">
                                           <div className="w-14 h-14 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center">
                                             <Play
                                               size={28}
@@ -313,7 +302,7 @@ export const Gallery: React.FC = () => {
                                     )}
                                   </div>
                                   <div className="p-10">
-                                    <p className="text-slate-600 text-sm leading-relaxed italic line-clamp-2 font-medium text-center">
+                                    <p className="text-slate-600 text-sm leading-relaxed italic line-clamp-2 font-medium text-center italic line-clamp-2 font-medium text-center">
                                       "{m.descripcion}"
                                     </p>
                                   </div>
@@ -330,7 +319,6 @@ export const Gallery: React.FC = () => {
           </div>
         ))}
 
-      {/* Modal */}
       <AnimatePresence>
         {selected && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-10">
@@ -425,14 +413,13 @@ export const Gallery: React.FC = () => {
                       })}
                     </div>
                   </div>
-
-                  <div className="flex items-center gap-4 p-5 bg-slate-50 rounded-[35px] border border-slate-100 w-full">
+                  <div className="flex items-center gap-4 p-5 bg-slate-50 rounded-[35px] border border-slate-100 w-full text-left">
                     <img
                       src={selected.autorFoto}
                       className="w-14 h-14 rounded-full border-4 border-white shadow-lg"
                       alt="autor"
                     />
-                    <div className="text-left">
+                    <div>
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
                         Subido por
                       </p>
@@ -441,11 +428,9 @@ export const Gallery: React.FC = () => {
                       </p>
                     </div>
                   </div>
-
                   <p className="text-slate-600 text-xl italic font-medium leading-relaxed text-center px-4">
                     "{selected.descripcion}"
                   </p>
-
                   <div className="mt-auto pt-10 w-full space-y-8">
                     <div className="flex gap-4 p-5 bg-pink-50/50 rounded-full border border-pink-100 justify-center">
                       {["❤️", "😂", "🔥", "😮", "🙌"].map((emoji) => (
@@ -469,12 +454,11 @@ export const Gallery: React.FC = () => {
                         fill="currentColor"
                       />
                     </div>
-
                     <button
                       onClick={async () => {
                         const res = await Swal.fire({
                           title: "¿Eliminar?",
-                          text: "Esta acción no se puede deshacer",
+                          text: "Se borrará definitivamente",
                           icon: "warning",
                           showCancelButton: true,
                           confirmButtonColor: "#ef4444",
@@ -491,7 +475,7 @@ export const Gallery: React.FC = () => {
                         size={24}
                         className="group-hover:rotate-12 transition-transform"
                       />
-                      <span className="text-[10px] font-black uppercase tracking-widest">
+                      <span className="text-[10px] font-black uppercase tracking-widest text-center">
                         Borrar del baúl
                       </span>
                     </button>
