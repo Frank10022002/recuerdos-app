@@ -59,9 +59,15 @@ interface Memoria {
 export const Gallery: React.FC = () => {
   const [memorias, setMemorias] = useState<Memoria[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<Memoria | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filtro, setFiltro] = useState("Todos");
   const [verReacciones, setVerReacciones] = useState(false);
+  const [hoveredEmoji, setHoveredEmoji] = useState<string | null>(null);
+
+  const selected = useMemo(
+    () => memorias.find((m) => m.id === selectedId) || null,
+    [memorias, selectedId]
+  );
 
   const categoriasMaster = [
     { id: "Todos", icon: "🌈" },
@@ -76,11 +82,20 @@ export const Gallery: React.FC = () => {
     { id: "Momentos Random", icon: "🎲" },
   ];
 
+  const reaccionesConfig = [
+    { emoji: "❤️", label: "Me encanta" },
+    { emoji: "😂", label: "Me divierte" },
+    { emoji: "🔥", label: "Me quema" },
+    { emoji: "😮", label: "Me asombra" },
+    { emoji: "🐱", label: "Me enfreshquese" },
+    { emoji: "🙌", label: "Me alegra" },
+  ];
+
   useEffect(() => {
     const handleMagic = () => {
       if (memorias.length > 0) {
         const randomIndex = Math.floor(Math.random() * memorias.length);
-        setSelected(memorias[randomIndex]);
+        setSelectedId(memorias[randomIndex].id);
         confetti({
           particleCount: 150,
           spread: 70,
@@ -137,8 +152,7 @@ export const Gallery: React.FC = () => {
 
     const { value: formValues } = await Swal.fire({
       title: "Editar Momento",
-      html: `
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%;">
+      html: `<div style="display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%;">
           <label style="font-size: 10px; font-weight: bold; color: #94a3b8; text-transform: uppercase; align-self: start; margin-left: 10%;">Historia</label>
           <textarea id="swal-desc" class="swal2-textarea" style="margin:0; width: 80%; border-radius: 12px; font-size: 13px; resize: none;">${
             m.descripcion
@@ -200,7 +214,7 @@ export const Gallery: React.FC = () => {
       <div className="flex flex-col items-center justify-center py-40 gap-4">
         <Loader2 className="animate-spin text-pink-500" size={48} />
         <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest text-center">
-          Organizando recuerdos...
+          Organizando baúl...
         </p>
       </div>
     );
@@ -227,102 +241,144 @@ export const Gallery: React.FC = () => {
       {Object.keys(datosCrono)
         .sort((a, b) => Number(b) - Number(a))
         .map((anio) => (
-          <div key={anio} className="mb-20">
-            <h2 className="text-6xl font-black text-slate-800/5 mb-10 tracking-tighter">
-              {anio}
-            </h2>
-            {Object.keys(datosCrono[anio]).map((mes) => (
-              <div key={mes} className="mb-12 border-l-4 border-pink-50 pl-6">
-                <div className="flex items-center gap-2 mb-8 bg-pink-500 text-white px-6 py-2 rounded-full w-fit shadow-md">
-                  <Sparkles size={14} />
-                  <span className="text-[10px] font-black uppercase tracking-widest">
-                    {mes}
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div key={anio} className="relative mb-32 pt-10">
+            <div className="absolute top-[-10px] left-6 w-full pointer-events-none select-none z-0 opacity-[0.03]">
+              <h2 className="text-[100px] md:text-[180px] font-black leading-none tracking-tighter text-slate-900">
+                {anio}
+              </h2>
+            </div>
+            <div className="relative z-10">
+              {Object.keys(datosCrono[anio]).map((mes) => (
+                <div key={mes} className="mb-24">
+                  <div className="flex items-center gap-3 mb-12">
+                    <div className="bg-pink-500 text-white px-6 py-2 rounded-full shadow-lg shadow-pink-100 flex items-center gap-2">
+                      <Sparkles size={14} className="text-pink-200" />
+                      <span className="text-[10px] font-black uppercase tracking-widest">
+                        {mes}
+                      </span>
+                    </div>
+                    <div className="h-[2px] flex-1 bg-gradient-to-r from-pink-200 to-transparent"></div>
+                  </div>
                   {Object.keys(datosCrono[anio][mes])
                     .sort((a, b) => Number(b) - Number(a))
-                    .map((dia) =>
-                      datosCrono[anio][mes][dia].fotos.map((m: Memoria) => {
-                        const principal = m.archivos
-                          ? m.archivos[0]
-                          : { url: m.urls?.[0] || m.url, tipo: m.tipo };
-                        return (
-                          <motion.div
-                            key={m.id}
-                            whileHover={{ y: -8 }}
-                            onClick={() => setSelected(m)}
-                            className="group relative bg-white rounded-[40px] overflow-hidden shadow-xl border border-white cursor-pointer"
-                          >
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleEdit(m);
-                              }}
-                              className="absolute top-4 right-4 z-30 p-2 bg-white/90 rounded-full text-slate-400 opacity-0 group-hover:opacity-100 hover:text-slate-900 shadow-sm"
-                            >
-                              <Pencil size={12} />
-                            </button>
-                            <div className="aspect-square bg-slate-100 overflow-hidden relative">
-                              {principal.tipo === "video" ? (
-                                <div className="w-full h-full relative bg-black">
-                                  <video
-                                    src={principal.url}
-                                    className="w-full h-full object-cover"
-                                    muted
-                                    playsInline
-                                    preload="metadata"
-                                  />
-                                  <Play
-                                    size={30}
-                                    className="absolute inset-0 m-auto text-white opacity-80"
-                                  />
-                                </div>
-                              ) : (
-                                <img
-                                  src={principal.url}
-                                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                                  alt="mem"
-                                />
-                              )}
-                            </div>
-                            <div className="p-5 text-slate-500 italic text-[11px] truncate text-center font-medium">
-                              "{m.descripcion}"
-                            </div>
-                          </motion.div>
-                        );
-                      })
-                    )}
+                    .map((dia) => (
+                      <div key={dia} className="mb-16">
+                        <div className="flex items-baseline gap-3 mb-8 border-l-4 border-pink-500 pl-4">
+                          <span className="text-2xl font-black text-slate-900 leading-none">
+                            {dia}{" "}
+                            <span className="text-sm font-medium text-slate-400 italic lowercase">
+                              de {mes}
+                            </span>
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+                          {datosCrono[anio][mes][dia].fotos.map(
+                            (m: Memoria) => {
+                              const principal = m.archivos
+                                ? m.archivos[0]
+                                : { url: m.urls?.[0] || m.url, tipo: m.tipo };
+                              return (
+                                <motion.div
+                                  key={m.id}
+                                  whileHover={{ y: -8 }}
+                                  onClick={() => setSelectedId(m.id)}
+                                  className="group relative bg-white rounded-[40px] overflow-hidden shadow-xl border-4 border-white cursor-pointer"
+                                >
+                                  <div className="aspect-square bg-slate-100 overflow-hidden relative">
+                                    <div className="absolute top-4 right-4 z-20 text-white/40 group-hover:text-pink-500 transition-colors">
+                                      <Heart size={18} fill="currentColor" />
+                                    </div>
+                                    <div className="absolute bottom-3 right-3 z-30 flex items-center gap-1 bg-white/80 backdrop-blur-md px-2 py-0.5 rounded-full shadow-sm border border-white/50">
+                                      <span className="text-[10px]">
+                                        {categoriasMaster.find(
+                                          (c) => c.id === m.categoria
+                                        )?.icon || "📸"}
+                                      </span>
+                                      <span className="text-[8px] font-black text-slate-700 uppercase tracking-tight">
+                                        {m.categoria}
+                                      </span>
+                                    </div>
+                                    {principal.tipo === "video" ? (
+                                      <div className="w-full h-full relative bg-black">
+                                        <video
+                                          src={principal.url}
+                                          className="w-full h-full object-cover"
+                                          muted
+                                          playsInline
+                                          preload="metadata"
+                                        />
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                                          <div className="w-10 h-10 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center">
+                                            <Play
+                                              size={20}
+                                              className="text-white ml-0.5"
+                                              fill="white"
+                                            />
+                                          </div>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <img
+                                        src={principal.url}
+                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                                        alt="img"
+                                      />
+                                    )}
+                                  </div>
+                                  <div className="p-6">
+                                    <p className="text-slate-500 text-[11px] leading-relaxed italic text-center font-medium line-clamp-2">
+                                      "{m.descripcion}"
+                                    </p>
+                                  </div>
+                                </motion.div>
+                              );
+                            }
+                          )}
+                        </div>
+                      </div>
+                    ))}
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         ))}
 
       <AnimatePresence>
         {selected && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-6">
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-10">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setSelected(null)}
-              className="absolute inset-0 bg-black/95 backdrop-blur-xl"
+              onClick={() => setSelectedId(null)}
+              className="absolute inset-0 bg-slate-900/95 backdrop-blur-3xl"
             />
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
+              initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="relative bg-white w-full max-w-5xl md:rounded-[40px] overflow-hidden flex flex-col md:flex-row h-full md:h-[85vh] z-50"
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative bg-white w-full max-w-7xl md:rounded-[50px] overflow-hidden flex flex-col md:flex-row h-full md:h-[85vh] z-50 shadow-2xl"
             >
               <button
-                onClick={() => setSelected(null)}
-                className="absolute top-4 right-4 z-[110] p-3 bg-black/20 text-white rounded-full hover:bg-black/40"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEdit(selected);
+                }}
+                className="absolute top-6 left-6 z-[110] p-3 bg-black/40 text-white rounded-full hover:bg-black/60 backdrop-blur-xl transition-all shadow-lg"
+              >
+                <Pencil size={20} />
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedId(null);
+                  setVerReacciones(false);
+                }}
+                className="absolute top-6 right-6 z-[110] p-3 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200 transition-all shadow-lg"
               >
                 <X size={20} />
               </button>
 
-              <div className="w-full md:w-[60%] bg-black relative h-[45vh] md:h-auto flex items-center justify-center">
+              <div className="w-full md:w-[65%] bg-black relative h-[45vh] md:h-auto overflow-hidden">
                 <Swiper
                   modules={[Pagination, Navigation]}
                   pagination={{ clickable: true }}
@@ -338,145 +394,187 @@ export const Gallery: React.FC = () => {
                   ).map((arc: any, i: number) => (
                     <SwiperSlide
                       key={i}
-                      className="flex items-center justify-center bg-black"
+                      className="flex items-center justify-center bg-black overflow-hidden"
                     >
                       {arc.tipo === "video" ? (
                         <video
                           src={arc.url}
                           controls
-                          className="max-w-full max-h-full object-contain"
+                          className="w-full h-full object-cover"
                           playsInline
                         />
                       ) : (
                         <img
                           src={arc.url}
-                          className="max-w-full max-h-full object-contain"
-                          alt="img"
+                          className="w-full h-full object-cover"
+                          alt="media"
                         />
                       )}
                     </SwiperSlide>
                   ))}
-                  <button className="prev-btn absolute left-3 top-1/2 -translate-y-1/2 z-50 p-2 text-white">
-                    <ChevronLeft size={20} />
+                  <button className="next-btn absolute right-4 top-1/2 -translate-y-1/2 z-50 p-4 bg-white/10 rounded-full text-white hover:bg-white/30 backdrop-blur-md transition-all">
+                    <ChevronRight size={24} />
                   </button>
-                  <button className="next-btn absolute right-3 top-1/2 -translate-y-1/2 z-50 p-2 text-white">
-                    <ChevronRight size={20} />
+                  <button className="prev-btn absolute left-4 top-1/2 -translate-y-1/2 z-50 p-4 bg-white/10 rounded-full text-white hover:bg-white/30 backdrop-blur-md transition-all">
+                    <ChevronLeft size={24} />
                   </button>
                 </Swiper>
               </div>
 
-              <div className="w-full md:w-[40%] p-8 flex flex-col items-center text-center bg-white overflow-y-auto">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="flex items-center gap-2 bg-slate-50 px-4 py-1.5 rounded-xl border border-slate-100 shadow-inner">
+              <div className="w-full md:w-[35%] p-8 flex flex-col bg-white overflow-y-auto items-center">
+                <div className="w-full flex flex-col gap-6 flex-1 items-center pb-16">
+                  <div className="text-center space-y-2">
+                    <div className="p-3 bg-pink-50 rounded-full w-fit mx-auto">
+                      <Calendar className="text-pink-500" size={20} />
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-700 tracking-tight">
+                      {parsearFecha(selected.fecha).toLocaleDateString(
+                        "es-ES",
+                        { day: "numeric", month: "long", year: "numeric" }
+                      )}
+                    </h2>
+                    <div className="flex items-center gap-1.5 text-slate-400 text-[15px] font-black uppercase tracking-[0.2em] bg-slate-50 px-4 py-1.5 rounded-full border border-slate-100 w-max mx-auto">
+                      <Clock size={12} className="text-pink-400" />
+                      {parsearFecha(selected.fecha).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-center gap-3 p-4 bg-slate-50 rounded-[30px] border border-slate-100 w-full">
                     <img
-                      src={`${selected.autorFoto}?t=${Date.now()}`}
-                      className="w-7 h-7 rounded-full border border-pink-100"
+                      src={selected.autorFoto}
+                      className="w-10 h-10 rounded-full border-2 border-white shadow-sm"
                       alt="autor"
                     />
-                    <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">
-                      {selected.autor}
-                    </span>
+                    <div className="text-left">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                        Subido por
+                      </p>
+                      <p className="font-bold text-slate-800 text-sm tracking-tight leading-tight">
+                        {selected.autor}
+                      </p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 text-xl font-serif italic text-slate-800">
-                    <Calendar className="text-pink-300" size={18} />
-                    {parsearFecha(selected.fecha).toLocaleDateString("es-ES", {
-                      day: "numeric",
-                      month: "long",
-                      year: "numeric",
-                    })}
-                  </div>
-                  <div className="flex items-center gap-2 text-slate-400 text-[10px] font-black uppercase bg-slate-50 px-3 py-1 rounded-full border">
-                    <Clock size={12} className="text-pink-400" />
-                    {parsearFecha(selected.fecha).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </div>
-                </div>
 
-                <div className="flex gap-1.5 p-3 mt-4 bg-slate-50 rounded-full border border-slate-100 shadow-inner relative group/reactions">
-                  {["❤️", "😂", "🔥", "😮", "🙌"].map((emoji) => (
-                    <button
-                      key={emoji}
-                      onClick={() => handleReaccionar(selected.id, emoji)}
-                      className={`text-xl hover:scale-125 transition-transform ${
-                        selected.reacciones?.[auth.currentUser?.uid || ""]
-                          ?.emoji === emoji
-                          ? "bg-white shadow-sm scale-110 rounded-full"
-                          : ""
-                      }`}
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                  <div className="absolute -right-8 top-1/2 -translate-y-1/2 text-pink-200">
-                    <Heart size={16} fill="currentColor" />
-                  </div>
-                </div>
+                  <p className="text-slate-600 text-base italic font-bold leading-relaxed text-center px-2 border-none bg-transparent">
+                    "{selected.descripcion}"
+                  </p>
 
-                <button
-                  onClick={() => setVerReacciones(!verReacciones)}
-                  className="text-[8px] font-black uppercase text-slate-400 mt-1 mb-4 hover:text-pink-500"
-                >
-                  {Object.keys(selected.reacciones || {}).length} Reacciones
-                </button>
-
-                <AnimatePresence>
-                  {verReacciones &&
-                    Object.keys(selected.reacciones || {}).length > 0 && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="flex flex-wrap justify-center gap-2 py-2 overflow-hidden"
-                      >
-                        {Object.entries(selected.reacciones || {}).map(
-                          ([uid, r]) => (
-                            <div
-                              key={uid}
-                              className="flex items-center gap-1 bg-white px-2 py-1 rounded-full border border-slate-100 shadow-sm relative text-[8px] font-bold"
-                            >
-                              <img
-                                src={r.foto}
-                                className="w-4 h-4 rounded-full"
-                                alt="r"
-                              />
-                              {r.nombre}
-                              <span className="absolute -top-2 -right-1 text-[10px]">
-                                {r.emoji}
-                              </span>
-                            </div>
-                          )
+                  {/* NUEVA ESTRUCTURA FLEX PARA EVITAR SALTOS DE MARGENES */}
+                  <div className="mt-auto pt-8 w-full flex flex-col gap-6">
+                    <div className="relative">
+                      <AnimatePresence>
+                        {hoveredEmoji && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] px-3 py-1 rounded-lg font-black uppercase tracking-wider whitespace-nowrap z-50 shadow-xl"
+                          >
+                            {hoveredEmoji}
+                          </motion.div>
                         )}
-                      </motion.div>
-                    )}
-                </AnimatePresence>
+                      </AnimatePresence>
 
-                <p className="text-slate-600 text-base leading-relaxed flex-1 italic overflow-y-auto font-medium py-4">
-                  "{selected.descripcion}"
-                </p>
+                      <div className="flex gap-3 p-3 bg-pink-50/50 rounded-full border border-pink-100 justify-center">
+                        {reaccionesConfig.map((item) => (
+                          <button
+                            key={item.emoji}
+                            onMouseEnter={() => setHoveredEmoji(item.label)}
+                            onMouseLeave={() => setHoveredEmoji(null)}
+                            onClick={() =>
+                              handleReaccionar(selected.id, item.emoji)
+                            }
+                            className={`text-2xl hover:scale-125 transition-transform ${
+                              selected.reacciones?.[auth.currentUser?.uid || ""]
+                                ?.emoji === item.emoji
+                                ? "bg-white shadow-lg rounded-full scale-110 p-0.5"
+                                : ""
+                            }`}
+                          >
+                            {item.emoji}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-                <button
-                  onClick={async () => {
-                    if (
-                      (
-                        await Swal.fire({
-                          title: "¿Eliminar?",
-                          icon: "warning",
-                          showCancelButton: true,
-                          confirmButtonColor: "#ef4444",
-                          customClass: { popup: "rounded-[32px]" },
-                        })
-                      ).isConfirmed
-                    ) {
-                      await deleteDoc(doc(db, "memorias", selected.id));
-                      setSelected(null);
-                    }
-                  }}
-                  className="mt-8 p-3 bg-red-50 text-red-400 rounded-full hover:bg-red-100 shadow-sm"
-                >
-                  <Trash2 size={24} />
-                </button>
+                    {/* Grupo de Toggle y Lista Animada */}
+                    <div className="w-full flex flex-col items-center">
+                      <button
+                        onClick={() => setVerReacciones(!verReacciones)}
+                        className="w-full text-[8px] font-black uppercase text-slate-400 hover:text-pink-500 transition-colors"
+                      >
+                        {Object.keys(selected.reacciones || {}).length}{" "}
+                        Reacciones
+                      </button>
+
+                      <AnimatePresence initial={false}>
+                        {verReacciones &&
+                          Object.keys(selected.reacciones || {}).length > 0 && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.3, ease: "easeInOut" }}
+                              className="w-full overflow-hidden"
+                            >
+                              <div className="flex flex-wrap justify-center gap-3 pt-4 pb-2 border-t border-slate-100 mt-4">
+                                {Object.entries(selected.reacciones || {}).map(
+                                  ([uid, r]) => (
+                                    <motion.div
+                                      initial={{ scale: 0.9, opacity: 0 }}
+                                      animate={{ scale: 1, opacity: 1 }}
+                                      key={uid}
+                                      className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full border border-slate-100 shadow-sm relative text-[11px] font-black uppercase tracking-tight"
+                                    >
+                                      <img
+                                        src={r.foto}
+                                        className="w-6 h-6 rounded-full border border-pink-100"
+                                        alt="r"
+                                      />
+                                      <span className="text-slate-700">
+                                        {r.nombre}
+                                      </span>
+                                      <span className="absolute -top-2.5 -right-1.5 text-[14px] drop-shadow-sm">
+                                        {r.emoji}
+                                      </span>
+                                    </motion.div>
+                                  )
+                                )}
+                              </div>
+                            </motion.div>
+                          )}
+                      </AnimatePresence>
+                    </div>
+
+                    <button
+                      onClick={async () => {
+                        if (
+                          (
+                            await Swal.fire({
+                              title: "¿Eliminar?",
+                              icon: "warning",
+                              showCancelButton: true,
+                              confirmButtonColor: "#ef4444",
+                              customClass: { popup: "rounded-[32px]" },
+                            })
+                          ).isConfirmed
+                        ) {
+                          await deleteDoc(doc(db, "memorias", selected.id));
+                          setSelectedId(null);
+                        }
+                      }}
+                      className="w-full flex flex-col items-center gap-1.5 p-6 bg-red-50 text-red-500 rounded-[35px] hover:bg-red-500 hover:text-white transition-all shadow-sm"
+                    >
+                      <Trash2 size={20} />
+                      <span className="text-[9px] font-black uppercase tracking-widest">
+                        ELIMINAR RECUERDO
+                      </span>
+                    </button>
+                  </div>
+                </div>
               </div>
             </motion.div>
           </div>
