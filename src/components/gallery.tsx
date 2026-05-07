@@ -264,8 +264,8 @@ export const Gallery: React.FC = () => {
         .sort((a, b) => Number(b) - Number(a))
         .map((anio) => (
           <div key={anio} className="relative mb-32 pt-10">
-            {/* CORRECCIÓN FINAL PARA EL AÑO: text-[85px] solo en móvil, md:text-[180px] en PC. Centrado perfecto. */}
-            <div className="absolute top-[-20px] md:top-[-50px] left-0 w-full flex justify-center pointer-events-none select-none z-0 opacity-[0.08] overflow-hidden">
+            {/* CORRECCIÓN: Se ha subido 40px más cambiando top-[-20px] por top-[-60px] para que no toque el mes en móvil. */}
+            <div className="absolute top-[-60px] md:top-[-50px] left-0 w-full flex justify-center pointer-events-none select-none z-0 opacity-[0.08] overflow-hidden">
               <h2 className="text-[85px] md:text-[180px] font-black leading-none tracking-tighter text-slate-900">
                 {anio}
               </h2>
