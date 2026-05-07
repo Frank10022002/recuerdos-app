@@ -75,12 +75,12 @@ export const Gallery: React.FC = () => {
     { id: "Momentos Random", icon: "🎲" },
   ];
 
-  // Lógica para Recuerdo Aleatorio (Escucha el evento de App.js)
+  // --- ESCUCHA EL EVENTO DEL BOTÓN DE LA BARRA LATERAL ---
   useEffect(() => {
     const handleMagic = () => {
       if (memorias.length > 0) {
-        const randomMem = memorias[Math.floor(Math.random() * memorias.length)];
-        setSelected(randomMem);
+        const randomIndex = Math.floor(Math.random() * memorias.length);
+        setSelected(memorias[randomIndex]);
         confetti({
           particleCount: 150,
           spread: 70,
@@ -176,11 +176,12 @@ export const Gallery: React.FC = () => {
       filtro === "Todos"
         ? memorias
         : memorias.filter((m) => m.categoria === filtro);
-
     filtradas.forEach((m) => {
       const d = parsearFecha(m.fecha);
       const anio = d.getFullYear();
-      const mes = d.toLocaleString("es-ES", { month: "long" }).toUpperCase();
+      const mes =
+        d.toLocaleString("es-ES", { month: "long" }).charAt(0).toUpperCase() +
+        d.toLocaleString("es-ES", { month: "long" }).slice(1);
       const dia = d.getDate();
       if (!almanaque[anio]) almanaque[anio] = {};
       if (!almanaque[anio][mes]) almanaque[anio][mes] = {};
@@ -200,7 +201,7 @@ export const Gallery: React.FC = () => {
       <div className="flex flex-col items-center justify-center py-40 gap-4">
         <Loader2 className="animate-spin text-pink-500" size={48} />
         <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest text-center">
-          Cargando...
+          Organizando recuerdos...
         </p>
       </div>
     );
@@ -218,7 +219,7 @@ export const Gallery: React.FC = () => {
             onClick={() => setFiltro(cat.id)}
             className={`px-6 py-3 rounded-2xl text-[11px] font-black transition-all shrink-0 flex items-center gap-2 border shadow-sm ${
               filtro === cat.id
-                ? "bg-slate-900 text-white border-slate-900"
+                ? "bg-slate-900 text-white border-slate-900 shadow-xl"
                 : "bg-white text-slate-500 border-slate-100 hover:border-pink-200"
             }`}
           >
@@ -227,11 +228,11 @@ export const Gallery: React.FC = () => {
         ))}
       </div>
 
-      {/* Cronología Principal */}
+      {/* Cronología */}
       {Object.keys(datosCrono)
         .sort((a, b) => Number(b) - Number(a))
         .map((anio) => (
-          <div key={anio} className="relative mb-40 pt-10">
+          <div key={anio} className="relative mb-32 pt-10">
             {/* Año de fondo absoluto */}
             <div className="absolute top-0 left-0 w-full pointer-events-none select-none z-0 opacity-[0.03]">
               <h2 className="text-[150px] md:text-[250px] font-black leading-none tracking-tighter text-slate-900">
@@ -242,7 +243,6 @@ export const Gallery: React.FC = () => {
             <div className="relative z-10">
               {Object.keys(datosCrono[anio]).map((mes) => (
                 <div key={mes} className="mb-24">
-                  {/* Mes Cabecera (Se usa Sparkles para diseño) */}
                   <div className="flex items-center gap-6 mb-16">
                     <div className="bg-pink-500 text-white px-8 py-3 rounded-[20px] shadow-lg shadow-pink-100 flex items-center gap-2">
                       <Sparkles size={16} className="text-pink-200" />
@@ -257,12 +257,12 @@ export const Gallery: React.FC = () => {
                     .sort((a, b) => Number(b) - Number(a))
                     .map((dia) => (
                       <div key={dia} className="mb-20">
-                        {/* Fecha: 6 de mayo de 2026 */}
+                        {/* FECHA FORMATEADA: "6 de Mayo de 2026" */}
                         <div className="flex items-baseline gap-3 mb-10 border-l-8 border-pink-500 pl-6">
                           <span className="text-4xl font-black text-slate-900 leading-none">
                             {dia}{" "}
-                            <span className="text-xl font-medium text-slate-400 italic">
-                              de {mes.toLowerCase()} de {anio}
+                            <span className="text-xl font-medium text-slate-400 italic lowercase">
+                              de {mes} de {anio}
                             </span>
                           </span>
                         </div>
@@ -281,7 +281,6 @@ export const Gallery: React.FC = () => {
                                   onClick={() => setSelected(m)}
                                 >
                                   <div className="aspect-square bg-slate-100 overflow-hidden relative">
-                                    {/* Se usa Heart aquí */}
                                     <div className="absolute top-6 right-6 z-20 text-white/50 group-hover:text-pink-500 transition-colors">
                                       <Heart size={24} fill="currentColor" />
                                     </div>
@@ -293,7 +292,7 @@ export const Gallery: React.FC = () => {
                                           muted
                                           playsInline
                                         />
-                                        <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/10 transition-all">
                                           <div className="w-14 h-14 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center">
                                             <Play
                                               size={28}
@@ -312,7 +311,7 @@ export const Gallery: React.FC = () => {
                                     )}
                                   </div>
                                   <div className="p-10">
-                                    <p className="text-slate-600 text-sm leading-relaxed italic line-clamp-2 font-medium text-center">
+                                    <p className="text-slate-600 text-sm leading-relaxed italic line-clamp-2 font-medium text-center italic line-clamp-2 font-medium text-center">
                                       "{m.descripcion}"
                                     </p>
                                   </div>
@@ -469,11 +468,12 @@ export const Gallery: React.FC = () => {
                       />
                     </div>
 
+                    {/* BOTÓN "BORRAR DEL BAÚL" - Aquí se usa */}
                     <button
                       onClick={async () => {
                         const res = await Swal.fire({
                           title: "¿Eliminar?",
-                          text: "Se borrará definitivamente",
+                          text: "Esta acción no se puede deshacer",
                           icon: "warning",
                           showCancelButton: true,
                           confirmButtonColor: "#ef4444",
