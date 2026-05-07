@@ -273,7 +273,7 @@ export const Gallery: React.FC = () => {
         .sort((a, b) => Number(b) - Number(a))
         .map((anio) => (
           <div key={anio} className="relative mb-32 pt-10">
-            <div className="absolute top-[-60px] md:top-[-50px] left-0 w-full flex justify-center pointer-events-none select-none z-0 opacity-[0.08] overflow-hidden">
+            <div className="absolute top-[-45px] md:top-[-50px] left-0 w-full flex justify-center pointer-events-none select-none z-0 opacity-[0.08] overflow-hidden">
               <h2 className="text-[85px] md:text-[180px] font-black leading-none tracking-tighter text-slate-900">
                 {anio}
               </h2>
