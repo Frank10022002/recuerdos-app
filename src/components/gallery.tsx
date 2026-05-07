@@ -24,6 +24,7 @@ import {
   Play,
   Loader2,
   Heart,
+  Sparkles,
 } from "lucide-react";
 
 import { Swiper, SwiperSlide } from "swiper/react";
@@ -86,6 +87,19 @@ export const Gallery: React.FC = () => {
     });
     return () => unsubscribe();
   }, []);
+
+  // Función para Recuerdo Aleatorio corregida
+  const handleRandomMemory = () => {
+    if (memorias.length === 0) return;
+    const randomIndex = Math.floor(Math.random() * memorias.length);
+    setSelected(memorias[randomIndex]);
+    confetti({
+      particleCount: 150,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ["#FF0000", "#FF69B4", "#FFFFFF"],
+    });
+  };
 
   const handleReaccionar = async (mId: string, emoji: string) => {
     if (!auth.currentUser) return;
@@ -183,70 +197,80 @@ export const Gallery: React.FC = () => {
       <div className="flex flex-col items-center justify-center py-40 gap-4">
         <Loader2 className="animate-spin text-pink-500" size={48} />
         <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest text-center">
-          Cargando...
+          Organizando recuerdos...
         </p>
       </div>
     );
 
   return (
     <div className="w-full max-w-7xl mx-auto pb-20 px-4">
-      {/* Filtros */}
-      <div className="flex items-center gap-3 mb-20 sticky top-0 z-40 bg-[#fafafb]/95 backdrop-blur-md py-6 overflow-x-auto no-scrollbar border-b border-slate-100">
-        <div className="p-3 bg-white rounded-2xl shadow-sm border border-slate-100 shrink-0">
-          <Filter size={18} className="text-pink-500" />
+      {/* HEADER: FILTROS + ALEATORIO */}
+      <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-16 sticky top-0 z-50 bg-[#fafafb]/95 backdrop-blur-md py-6 border-b border-slate-100">
+        <div className="flex items-center gap-3 overflow-x-auto no-scrollbar w-full md:w-auto">
+          <div className="p-3 bg-white rounded-2xl shadow-sm border border-slate-100 shrink-0">
+            <Filter size={18} className="text-pink-500" />
+          </div>
+          {categoriasMaster.map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setFiltro(cat.id)}
+              className={`px-6 py-3 rounded-2xl text-[11px] font-black transition-all shrink-0 flex items-center gap-2 border shadow-sm ${
+                filtro === cat.id
+                  ? "bg-slate-900 text-white border-slate-900"
+                  : "bg-white text-slate-500 border-slate-100 hover:border-pink-200"
+              }`}
+            >
+              <span>{cat.icon}</span> {cat.id}
+            </button>
+          ))}
         </div>
-        {categoriasMaster.map((cat) => (
-          <button
-            key={cat.id}
-            onClick={() => setFiltro(cat.id)}
-            className={`px-6 py-3 rounded-2xl text-[11px] font-black transition-all shrink-0 flex items-center gap-2 border shadow-sm ${
-              filtro === cat.id
-                ? "bg-slate-900 text-white border-slate-900"
-                : "bg-white text-slate-500 border-slate-100"
-            }`}
-          >
-            <span>{cat.icon}</span> {cat.id}
-          </button>
-        ))}
+
+        <button
+          onClick={handleRandomMemory}
+          className="flex items-center gap-2 px-8 py-4 bg-white text-pink-500 border-2 border-pink-500 rounded-[22px] font-black uppercase text-[10px] tracking-[0.2em] hover:bg-pink-500 hover:text-white transition-all shadow-xl active:scale-95 shrink-0"
+        >
+          <Sparkles size={16} /> Recuerdo Aleatorio
+        </button>
       </div>
 
-      {/* Cronología */}
+      {/* CRONOLOGÍA */}
       {Object.keys(datosCrono)
         .sort((a, b) => Number(b) - Number(a))
         .map((anio) => (
-          <div key={anio} className="relative mb-32">
-            <div className="sticky top-24 pointer-events-none z-0">
-              <h2 className="text-[120px] md:text-[180px] font-black text-slate-900/[0.03] leading-none tracking-tighter">
+          <div key={anio} className="relative mb-40">
+            {/* Año de fondo absoluto (Z-0) */}
+            <div className="absolute top-0 left-0 w-full pointer-events-none select-none z-0">
+              <h2 className="text-[140px] md:text-[280px] font-black text-slate-900/[0.03] leading-none tracking-tighter">
                 {anio}
               </h2>
             </div>
 
-            <div className="relative z-10 -mt-16 md:-mt-24">
+            <div className="relative z-10 pt-20">
               {Object.keys(datosCrono[anio]).map((mes) => (
-                <div key={mes} className="mb-20">
-                  <div className="flex items-center gap-6 mb-12">
-                    <div className="bg-pink-500 text-white px-6 py-2 rounded-2xl shadow-lg shadow-pink-100">
-                      <span className="text-[11px] font-black uppercase tracking-[0.3em]">
+                <div key={mes} className="mb-24 last:mb-0">
+                  <div className="flex items-center gap-6 mb-16">
+                    <div className="bg-pink-500 text-white px-8 py-3 rounded-[20px] shadow-lg shadow-pink-100">
+                      <span className="text-[12px] font-black uppercase tracking-[0.4em]">
                         {mes}
                       </span>
                     </div>
-                    <div className="h-px flex-1 bg-gradient-to-r from-pink-200 to-transparent"></div>
+                    <div className="h-[2px] flex-1 bg-gradient-to-r from-pink-200 to-transparent"></div>
                   </div>
 
                   {Object.keys(datosCrono[anio][mes])
                     .sort((a, b) => Number(b) - Number(a))
                     .map((dia) => (
-                      <div key={dia} className="mb-16">
-                        <div className="flex items-baseline gap-3 mb-8 border-l-4 border-pink-100 pl-6">
-                          <span className="text-4xl font-black text-slate-900 leading-none">
+                      <div key={dia} className="mb-20">
+                        <div className="flex items-center gap-4 mb-10 border-l-8 border-pink-500 pl-6">
+                          <span className="text-5xl font-black text-slate-900 leading-none">
                             {dia}
                           </span>
-                          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                          <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">
                             {datosCrono[anio][mes][dia].nombre}
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
                           {datosCrono[anio][mes][dia].fotos.map(
                             (m: Memoria) => {
                               const principal = m.archivos
@@ -255,11 +279,15 @@ export const Gallery: React.FC = () => {
                               return (
                                 <motion.div
                                   key={m.id}
-                                  whileHover={{ y: -10, scale: 1.02 }}
-                                  className="group relative bg-white rounded-[45px] overflow-hidden shadow-[0_15px_45px_rgba(0,0,0,0.05)] border border-white cursor-pointer"
+                                  whileHover={{ y: -15, scale: 1.02 }}
+                                  className="group relative bg-white rounded-[55px] overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.06)] border-4 border-white cursor-pointer"
                                   onClick={() => setSelected(m)}
                                 >
                                   <div className="aspect-square bg-slate-100 overflow-hidden relative">
+                                    {/* ICONO HEART USADO AQUÍ COMO INDICADOR DE FAVORITO SUTIL */}
+                                    <div className="absolute top-6 right-6 z-20 text-white/50 group-hover:text-pink-500 transition-colors">
+                                      <Heart size={24} fill="currentColor" />
+                                    </div>
                                     {principal.tipo === "video" ? (
                                       <div className="w-full h-full relative">
                                         <video
@@ -268,10 +296,10 @@ export const Gallery: React.FC = () => {
                                           muted
                                           playsInline
                                         />
-                                        <div className="absolute inset-0 flex items-center justify-center bg-black/5">
-                                          <div className="w-14 h-14 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center">
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                                          <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30">
                                             <Play
-                                              size={28}
+                                              size={32}
                                               className="text-white ml-1"
                                               fill="white"
                                             />
@@ -281,12 +309,12 @@ export const Gallery: React.FC = () => {
                                     ) : (
                                       <img
                                         src={principal.url}
-                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                                        alt="mem"
+                                        className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
+                                        alt="img"
                                       />
                                     )}
                                   </div>
-                                  <div className="p-8">
+                                  <div className="p-10">
                                     <p className="text-slate-600 text-sm leading-relaxed italic line-clamp-2 font-medium text-center">
                                       "{m.descripcion}"
                                     </p>
@@ -304,7 +332,7 @@ export const Gallery: React.FC = () => {
           </div>
         ))}
 
-      {/* Modal */}
+      {/* MODAL DETALLE */}
       <AnimatePresence>
         {selected && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-10">
@@ -313,7 +341,7 @@ export const Gallery: React.FC = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelected(null)}
-              className="absolute inset-0 bg-slate-900/95 backdrop-blur-2xl"
+              className="absolute inset-0 bg-slate-900/95 backdrop-blur-3xl"
             />
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -323,13 +351,13 @@ export const Gallery: React.FC = () => {
             >
               <button
                 onClick={() => handleEdit(selected)}
-                className="absolute top-6 left-6 z-[110] p-4 bg-black/40 text-white rounded-full hover:bg-black/60 backdrop-blur-xl shadow-xl transition-all"
+                className="absolute top-8 left-8 z-[110] p-4 bg-black/40 text-white rounded-full hover:bg-black/60 backdrop-blur-xl shadow-xl transition-all"
               >
                 <Pencil size={24} />
               </button>
               <button
                 onClick={() => setSelected(null)}
-                className="absolute top-6 right-6 z-[110] p-4 bg-slate-100 text-slate-400 rounded-full hover:bg-slate-200 shadow-xl transition-all"
+                className="absolute top-8 right-8 z-[110] p-4 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200 shadow-xl transition-all"
               >
                 <X size={24} />
               </button>
@@ -367,28 +395,28 @@ export const Gallery: React.FC = () => {
                       )}
                     </SwiperSlide>
                   ))}
-                  <button className="next-btn absolute right-6 top-1/2 -translate-y-1/2 z-50 p-4 bg-white/20 rounded-full text-white hover:bg-white/40 backdrop-blur-md transition-all">
-                    <ChevronRight size={24} />
+                  <button className="next-btn absolute right-6 top-1/2 -translate-y-1/2 z-50 p-5 bg-white/20 rounded-full text-white hover:bg-white/40 backdrop-blur-lg transition-all">
+                    <ChevronRight size={28} />
                   </button>
-                  <button className="prev-btn absolute left-6 top-1/2 -translate-y-1/2 z-50 p-4 bg-white/20 rounded-full text-white hover:bg-white/40 backdrop-blur-md transition-all">
-                    <ChevronLeft size={24} />
+                  <button className="prev-btn absolute left-6 top-1/2 -translate-y-1/2 z-50 p-5 bg-white/20 rounded-full text-white hover:bg-white/40 backdrop-blur-lg transition-all">
+                    <ChevronLeft size={28} />
                   </button>
                 </Swiper>
               </div>
 
-              <div className="w-full md:w-[35%] p-10 flex flex-col bg-white overflow-y-auto items-center">
-                <div className="flex flex-col gap-8 flex-1 w-full items-center">
+              <div className="w-full md:w-[35%] p-12 flex flex-col bg-white overflow-y-auto">
+                <div className="flex flex-col gap-10 flex-1 w-full items-center">
                   <div className="space-y-4 text-center">
-                    <div className="p-5 bg-pink-50 rounded-full w-fit mx-auto">
-                      <Calendar className="text-pink-500" size={32} />
+                    <div className="p-6 bg-pink-50 rounded-full w-fit mx-auto">
+                      <Calendar className="text-pink-500" size={36} />
                     </div>
-                    <h2 className="text-2xl font-black text-slate-800 tracking-tighter">
+                    <h2 className="text-3xl font-black text-slate-800 tracking-tighter">
                       {parsearFecha(selected.fecha).toLocaleDateString(
                         "es-ES",
                         { day: "numeric", month: "long", year: "numeric" }
                       )}
                     </h2>
-                    <div className="flex items-center gap-2 text-slate-400 text-xs font-black uppercase tracking-widest bg-slate-50 w-fit px-4 py-2 rounded-full border border-slate-100 mx-auto">
+                    <div className="flex items-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] bg-slate-50 w-fit px-5 py-2 rounded-full border border-slate-100 mx-auto">
                       <Clock size={14} className="text-pink-400" />
                       {parsearFecha(selected.fecha).toLocaleTimeString([], {
                         hour: "2-digit",
@@ -397,92 +425,74 @@ export const Gallery: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-[30px] border border-slate-100 w-full">
+                  <div className="flex items-center gap-4 p-5 bg-slate-50 rounded-[35px] border border-slate-100 w-full">
                     <img
                       src={selected.autorFoto}
-                      className="w-12 h-12 rounded-full border-2 border-white shadow-md"
+                      className="w-14 h-14 rounded-full border-4 border-white shadow-lg"
                       alt="autor"
                     />
                     <div className="text-left">
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        Subido por
+                        Memoria de
                       </p>
-                      <p className="font-black text-slate-800 text-sm">
+                      <p className="font-black text-slate-800 text-base">
                         {selected.autor}
                       </p>
                     </div>
                   </div>
 
-                  <p className="text-slate-600 text-xl italic font-medium leading-relaxed text-center px-2">
+                  <p className="text-slate-600 text-xl italic font-medium leading-relaxed text-center px-4">
                     "{selected.descripcion}"
                   </p>
 
-                  <div className="mt-auto pt-8 w-full space-y-8">
-                    <div className="flex flex-col gap-4">
-                      <div className="flex gap-3 p-4 bg-pink-50/50 rounded-full border border-pink-100 justify-center">
+                  <div className="mt-auto pt-10 w-full space-y-8">
+                    <div className="flex flex-col gap-5">
+                      <div className="flex gap-4 p-5 bg-pink-50/50 rounded-full border border-pink-100 justify-center">
                         {["❤️", "😂", "🔥", "😮", "🙌"].map((emoji) => (
                           <button
                             key={emoji}
                             onClick={() => handleReaccionar(selected.id, emoji)}
-                            className={`text-2xl hover:scale-125 transition-transform p-1 ${
+                            className={`text-3xl hover:scale-125 transition-transform p-1 ${
                               selected.reacciones?.[auth.currentUser?.uid || ""]
                                 ?.emoji === emoji
-                                ? "bg-white shadow-md rounded-full scale-110"
+                                ? "bg-white shadow-xl rounded-full scale-110"
                                 : ""
                             }`}
                           >
                             {emoji}
                           </button>
                         ))}
-                        {/* USO DE HEART PARA QUITAR EL AMARILLO */}
-                        <button className="text-pink-400 hover:scale-110 transition-transform">
-                          <Heart size={24} fill="currentColor" />
+                        {/* USO DE HEART EN MODAL PARA QUITAR EL WARNING */}
+                        <div className="w-[1px] h-8 bg-pink-200 mx-1" />
+                        <button className="text-pink-500 hover:scale-110 transition-transform">
+                          <Heart size={28} fill="currentColor" />
                         </button>
                       </div>
-                      {/* Avatares de reacciones */}
-                      {selected.reacciones &&
-                        Object.keys(selected.reacciones).length > 0 && (
-                          <div className="flex flex-wrap justify-center gap-2">
-                            {Object.values(selected.reacciones).map(
-                              (re, idx) => (
-                                <div key={idx} className="group relative">
-                                  <img
-                                    src={re.foto}
-                                    className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
-                                    alt="re"
-                                  />
-                                  <span className="absolute -bottom-1 -right-1 text-[8px] bg-white rounded-full shadow-sm w-4 h-4 flex items-center justify-center">
-                                    {re.emoji}
-                                  </span>
-                                </div>
-                              )
-                            )}
-                          </div>
-                        )}
                     </div>
 
                     <button
                       onClick={async () => {
                         const res = await Swal.fire({
                           title: "¿Eliminar?",
+                          text: "Esta acción no se puede deshacer",
                           icon: "warning",
                           showCancelButton: true,
                           confirmButtonColor: "#ef4444",
-                          confirmButtonText: "Sí",
+                          confirmButtonText: "Eliminar",
                         });
                         if (res.isConfirmed) {
                           await deleteDoc(doc(db, "memorias", selected.id));
                           setSelected(null);
                         }
                       }}
-                      className="w-full flex flex-col items-center gap-2 p-6 bg-red-50 text-red-500 rounded-[35px] hover:bg-red-500 hover:text-white transition-all shadow-sm group"
+                      className="w-full flex flex-col items-center gap-2 p-8 bg-red-50 text-red-500 rounded-[40px] hover:bg-red-500 hover:text-white transition-all shadow-sm group"
                     >
                       <Trash2
                         size={24}
-                        className="group-hover:scale-110 transition-transform"
+                        className="group-hover:rotate-12 transition-transform"
                       />
                       <span className="text-[10px] font-black uppercase tracking-widest">
-                        Eliminar Recuerdo
+                        Borrar del baúl
                       </span>
                     </button>
                   </div>
