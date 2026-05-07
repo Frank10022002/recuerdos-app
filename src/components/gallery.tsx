@@ -88,7 +88,6 @@ export const Gallery: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  // Función para Recuerdo Aleatorio corregida
   const handleRandomMemory = () => {
     if (memorias.length === 0) return;
     const randomIndex = Math.floor(Math.random() * memorias.length);
@@ -97,7 +96,7 @@ export const Gallery: React.FC = () => {
       particleCount: 150,
       spread: 70,
       origin: { y: 0.6 },
-      colors: ["#FF0000", "#FF69B4", "#FFFFFF"],
+      colors: ["#ec4899", "#f43f5e", "#ffffff"],
     });
   };
 
@@ -177,7 +176,9 @@ export const Gallery: React.FC = () => {
     filtradas.forEach((m) => {
       const d = parsearFecha(m.fecha);
       const anio = d.getFullYear();
-      const mes = d.toLocaleString("es-ES", { month: "long" }).toUpperCase();
+      const mes =
+        d.toLocaleString("es-ES", { month: "long" }).charAt(0).toUpperCase() +
+        d.toLocaleString("es-ES", { month: "long" }).slice(1);
       const dia = d.getDate();
       if (!almanaque[anio]) almanaque[anio] = {};
       if (!almanaque[anio][mes]) almanaque[anio][mes] = {};
@@ -204,9 +205,10 @@ export const Gallery: React.FC = () => {
 
   return (
     <div className="w-full max-w-7xl mx-auto pb-20 px-4">
-      {/* HEADER: FILTROS + ALEATORIO */}
+      {/* HEADER: SE USA 'FILTER' AQUÍ */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-16 sticky top-0 z-50 bg-[#fafafb]/95 backdrop-blur-md py-6 border-b border-slate-100">
         <div className="flex items-center gap-3 overflow-x-auto no-scrollbar w-full md:w-auto">
+          {/* AQUÍ SE USA EL ICONO FILTER */}
           <div className="p-3 bg-white rounded-2xl shadow-sm border border-slate-100 shrink-0">
             <Filter size={18} className="text-pink-500" />
           </div>
@@ -216,7 +218,7 @@ export const Gallery: React.FC = () => {
               onClick={() => setFiltro(cat.id)}
               className={`px-6 py-3 rounded-2xl text-[11px] font-black transition-all shrink-0 flex items-center gap-2 border shadow-sm ${
                 filtro === cat.id
-                  ? "bg-slate-900 text-white border-slate-900"
+                  ? "bg-slate-900 text-white border-slate-900 shadow-xl"
                   : "bg-white text-slate-500 border-slate-100 hover:border-pink-200"
               }`}
             >
@@ -237,17 +239,17 @@ export const Gallery: React.FC = () => {
       {Object.keys(datosCrono)
         .sort((a, b) => Number(b) - Number(a))
         .map((anio) => (
-          <div key={anio} className="relative mb-40">
-            {/* Año de fondo absoluto (Z-0) */}
-            <div className="absolute top-0 left-0 w-full pointer-events-none select-none z-0">
-              <h2 className="text-[140px] md:text-[280px] font-black text-slate-900/[0.03] leading-none tracking-tighter">
+          <div key={anio} className="relative mb-32 pt-10">
+            {/* Año de fondo absoluto para que no se mezcle */}
+            <div className="absolute top-0 left-0 w-full pointer-events-none select-none z-0 opacity-[0.03]">
+              <h2 className="text-[150px] md:text-[250px] font-black leading-none tracking-tighter text-slate-900">
                 {anio}
               </h2>
             </div>
 
-            <div className="relative z-10 pt-20">
+            <div className="relative z-10">
               {Object.keys(datosCrono[anio]).map((mes) => (
-                <div key={mes} className="mb-24 last:mb-0">
+                <div key={mes} className="mb-24">
                   <div className="flex items-center gap-6 mb-16">
                     <div className="bg-pink-500 text-white px-8 py-3 rounded-[20px] shadow-lg shadow-pink-100">
                       <span className="text-[12px] font-black uppercase tracking-[0.4em]">
@@ -261,12 +263,13 @@ export const Gallery: React.FC = () => {
                     .sort((a, b) => Number(b) - Number(a))
                     .map((dia) => (
                       <div key={dia} className="mb-20">
-                        <div className="flex items-center gap-4 mb-10 border-l-8 border-pink-500 pl-6">
-                          <span className="text-5xl font-black text-slate-900 leading-none">
-                            {dia}
-                          </span>
-                          <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.3em]">
-                            {datosCrono[anio][mes][dia].nombre}
+                        {/* FORMATO CORREGIDO: 6 de Mayo de 2026 */}
+                        <div className="flex items-baseline gap-3 mb-10 border-l-8 border-pink-500 pl-6">
+                          <span className="text-4xl font-black text-slate-900 leading-none">
+                            {dia}{" "}
+                            <span className="text-xl font-medium text-slate-400 italic">
+                              de {mes} de {anio}
+                            </span>
                           </span>
                         </div>
 
@@ -279,12 +282,11 @@ export const Gallery: React.FC = () => {
                               return (
                                 <motion.div
                                   key={m.id}
-                                  whileHover={{ y: -15, scale: 1.02 }}
+                                  whileHover={{ y: -12, scale: 1.02 }}
                                   className="group relative bg-white rounded-[55px] overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.06)] border-4 border-white cursor-pointer"
                                   onClick={() => setSelected(m)}
                                 >
                                   <div className="aspect-square bg-slate-100 overflow-hidden relative">
-                                    {/* ICONO HEART USADO AQUÍ COMO INDICADOR DE FAVORITO SUTIL */}
                                     <div className="absolute top-6 right-6 z-20 text-white/50 group-hover:text-pink-500 transition-colors">
                                       <Heart size={24} fill="currentColor" />
                                     </div>
@@ -296,10 +298,10 @@ export const Gallery: React.FC = () => {
                                           muted
                                           playsInline
                                         />
-                                        <div className="absolute inset-0 flex items-center justify-center bg-black/10">
-                                          <div className="w-16 h-16 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center border border-white/30">
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/10 transition-all">
+                                          <div className="w-14 h-14 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center">
                                             <Play
-                                              size={32}
+                                              size={28}
                                               className="text-white ml-1"
                                               fill="white"
                                             />
@@ -350,7 +352,10 @@ export const Gallery: React.FC = () => {
               className="relative bg-white w-full max-w-6xl md:rounded-[60px] overflow-hidden flex flex-col md:flex-row h-full md:h-[85vh] z-50 shadow-2xl"
             >
               <button
-                onClick={() => handleEdit(selected)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleEdit(selected);
+                }}
                 className="absolute top-8 left-8 z-[110] p-4 bg-black/40 text-white rounded-full hover:bg-black/60 backdrop-blur-xl shadow-xl transition-all"
               >
                 <Pencil size={24} />
@@ -404,7 +409,7 @@ export const Gallery: React.FC = () => {
                 </Swiper>
               </div>
 
-              <div className="w-full md:w-[35%] p-12 flex flex-col bg-white overflow-y-auto">
+              <div className="w-full md:w-[35%] p-12 flex flex-col bg-white overflow-y-auto items-center">
                 <div className="flex flex-col gap-10 flex-1 w-full items-center">
                   <div className="space-y-4 text-center">
                     <div className="p-6 bg-pink-50 rounded-full w-fit mx-auto">
@@ -433,7 +438,7 @@ export const Gallery: React.FC = () => {
                     />
                     <div className="text-left">
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                        Memoria de
+                        Subido por
                       </p>
                       <p className="font-black text-slate-800 text-base">
                         {selected.autor}
@@ -446,28 +451,27 @@ export const Gallery: React.FC = () => {
                   </p>
 
                   <div className="mt-auto pt-10 w-full space-y-8">
-                    <div className="flex flex-col gap-5">
-                      <div className="flex gap-4 p-5 bg-pink-50/50 rounded-full border border-pink-100 justify-center">
-                        {["❤️", "😂", "🔥", "😮", "🙌"].map((emoji) => (
-                          <button
-                            key={emoji}
-                            onClick={() => handleReaccionar(selected.id, emoji)}
-                            className={`text-3xl hover:scale-125 transition-transform p-1 ${
-                              selected.reacciones?.[auth.currentUser?.uid || ""]
-                                ?.emoji === emoji
-                                ? "bg-white shadow-xl rounded-full scale-110"
-                                : ""
-                            }`}
-                          >
-                            {emoji}
-                          </button>
-                        ))}
-                        {/* USO DE HEART EN MODAL PARA QUITAR EL WARNING */}
-                        <div className="w-[1px] h-8 bg-pink-200 mx-1" />
-                        <button className="text-pink-500 hover:scale-110 transition-transform">
-                          <Heart size={28} fill="currentColor" />
+                    <div className="flex gap-4 p-5 bg-pink-50/50 rounded-full border border-pink-100 justify-center">
+                      {["❤️", "😂", "🔥", "😮", "🙌"].map((emoji) => (
+                        <button
+                          key={emoji}
+                          onClick={() => handleReaccionar(selected.id, emoji)}
+                          className={`text-3xl hover:scale-125 transition-transform p-1 ${
+                            selected.reacciones?.[auth.currentUser?.uid || ""]
+                              ?.emoji === emoji
+                              ? "bg-white shadow-xl rounded-full scale-110"
+                              : ""
+                          }`}
+                        >
+                          {emoji}
                         </button>
-                      </div>
+                      ))}
+                      <div className="w-[1px] h-8 bg-pink-200 mx-1" />
+                      <Heart
+                        size={28}
+                        className="text-pink-500"
+                        fill="currentColor"
+                      />
                     </div>
 
                     <button
