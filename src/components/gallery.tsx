@@ -242,8 +242,9 @@ export const Gallery: React.FC = () => {
         .sort((a, b) => Number(b) - Number(a))
         .map((anio) => (
           <div key={anio} className="relative mb-32 pt-10">
-            <div className="absolute top-[-50px] left w-full pointer-events-none select-none z-0 opacity-[0.1]">
-              <h2 className="text-[150px] md:text-[90px] font-black leading-none tracking-tighter text-slate-900">
+            {/* CORRECCIÓN 2: left-0, overflow-hidden y text-center añadidos */}
+            <div className="absolute top-[-50px] left-0 w-full pointer-events-none select-none z-0 opacity-[0.1] overflow-hidden">
+              <h2 className="text-[150px] md:text-[90px] font-black leading-none tracking-tighter text-slate-900 text-center">
                 {anio}
               </h2>
             </div>
@@ -300,8 +301,9 @@ export const Gallery: React.FC = () => {
                                     </div>
                                     {principal.tipo === "video" ? (
                                       <div className="w-full h-full relative bg-black">
+                                        {/* CORRECCIÓN 1A: #t=0.001 añadido a la url del video */}
                                         <video
-                                          src={principal.url}
+                                          src={`${principal.url}#t=0.001`}
                                           className="w-full h-full object-cover"
                                           muted
                                           playsInline
@@ -397,8 +399,9 @@ export const Gallery: React.FC = () => {
                       className="flex items-center justify-center bg-black overflow-hidden"
                     >
                       {arc.tipo === "video" ? (
+                        /* CORRECCIÓN 1B: #t=0.001 añadido al video del Swiper */
                         <video
-                          src={arc.url}
+                          src={`${arc.url}#t=0.001`}
                           controls
                           className="w-full h-full object-cover"
                           playsInline
@@ -466,7 +469,6 @@ export const Gallery: React.FC = () => {
                     "{selected.descripcion}"
                   </p>
 
-                  {/* NUEVA ESTRUCTURA FLEX PARA EVITAR SALTOS DE MARGENES */}
                   <div className="mt-auto pt-8 w-full flex flex-col gap-6">
                     <div className="relative">
                       <AnimatePresence>
@@ -504,7 +506,6 @@ export const Gallery: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Grupo de Toggle y Lista Animada */}
                     <div className="w-full flex flex-col items-center">
                       <button
                         onClick={() => setVerReacciones(!verReacciones)}
