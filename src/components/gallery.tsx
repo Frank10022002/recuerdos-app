@@ -95,7 +95,9 @@ export const Gallery: React.FC = () => {
     const handleMagic = () => {
       if (memorias.length > 0) {
         const randomIndex = Math.floor(Math.random() * memorias.length);
-        setSelectedId(memorias[randomIndex].id);
+        const mId = memorias[randomIndex].id;
+        window.history.pushState({ modalOpen: true }, "");
+        setSelectedId(mId);
         confetti({
           particleCount: 150,
           spread: 70,
@@ -119,17 +121,16 @@ export const Gallery: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  // EFECTO PARA CONTROLAR EL BOTÓN FÍSICO DE RETROCESO EN ANDROID
+  // Control del botón "Atrás" de Android para no cerrar la app
   useEffect(() => {
-    const handleBackButton = () => {
+    const handlePopState = () => {
       if (selectedId !== null) {
         setSelectedId(null);
         setVerReacciones(false);
       }
     };
-
-    window.addEventListener("popstate", handleBackButton);
-    return () => window.removeEventListener("popstate", handleBackButton);
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
   }, [selectedId]);
 
   const handleReaccionar = async (mId: string, emoji: string) => {
@@ -222,6 +223,16 @@ export const Gallery: React.FC = () => {
     return almanaque;
   }, [memorias, filtro]);
 
+  // Cierra el modal de forma segura (con o sin historial)
+  const closeModal = () => {
+    if (window.history.state?.modalOpen) {
+      window.history.back();
+    } else {
+      setSelectedId(null);
+      setVerReacciones(false);
+    }
+  };
+
   if (loading)
     return (
       <div className="flex flex-col items-center justify-center py-40 gap-4">
@@ -233,7 +244,6 @@ export const Gallery: React.FC = () => {
     );
 
   return (
-    // CONTENEDOR PRINCIPAL: overflow-x-hidden para evitar cualquier tambaleo lateral
     <div className="w-full max-w-7xl mx-auto pb-20 px-4 overflow-x-hidden min-h-screen">
       <div className="flex items-center gap-3 mb-10 sticky top-0 z-40 bg-[#fafafb]/95 backdrop-blur-md py-4 overflow-x-auto no-scrollbar border-b border-slate-100 px-2">
         <Filter size={16} className="text-slate-400 shrink-0" />
@@ -256,9 +266,9 @@ export const Gallery: React.FC = () => {
         .sort((a, b) => Number(b) - Number(a))
         .map((anio) => (
           <div key={anio} className="relative mb-32 pt-10">
-            {/* FONDO DEL AÑO: Totalmente centrado, sin desbordarse y ajustado a celulares */}
-            <div className="absolute top-[-30px] md:top-[-50px] left-0 w-full flex justify-center pointer-events-none select-none z-0 opacity-[0.08] overflow-hidden">
-              <h2 className="text-[120px] md:text-[180px] font-black leading-none tracking-tighter text-slate-900 whitespace-nowrap">
+            {/* AÑO PERFECTAMENTE CENTRADO */}
+            <div className="absolute top-[-30px] md:top-[-50px] inset-x-0 w-full flex justify-center items-center pointer-events-none select-none z-0 opacity-[0.08] overflow-hidden">
+              <h2 className="text-[140px] md:text-[180px] font-black leading-none tracking-tighter text-slate-900 text-center">
                 {anio}
               </h2>
             </div>
@@ -298,7 +308,6 @@ export const Gallery: React.FC = () => {
                                   key={m.id}
                                   whileHover={{ y: -8 }}
                                   onClick={() => {
-                                    // ABRIR FOTO: Registra el evento en el historial del celular
                                     window.history.pushState(
                                       { modalOpen: true },
                                       ""
@@ -368,26 +377,21 @@ export const Gallery: React.FC = () => {
 
       <AnimatePresence>
         {selected && (
+          // MODAL: Ajustado p-0 en móviles para aprovechar toda la pantalla
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-10">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => {
-                // CERRAR FOTO (FONDO OSCURO): Limpia la pantalla y el historial
-                setSelectedId(null);
-                setVerReacciones(false);
-                if (window.history.state?.modalOpen) {
-                  window.history.back();
-                }
-              }}
+              onClick={closeModal}
               className="absolute inset-0 bg-slate-900/95 backdrop-blur-3xl"
             />
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="relative bg-white w-full max-w-7xl md:rounded-[50px] overflow-hidden flex flex-col md:flex-row h-full md:h-[85vh] z-50 shadow-2xl"
+              // MODAL CONTENEDOR: Ocupa todo el alto y ancho en móvil
+              className="relative bg-white w-full h-full max-w-7xl md:rounded-[50px] overflow-hidden flex flex-col md:flex-row md:h-[85vh] z-50 shadow-2xl"
             >
               <button
                 onClick={(e) => {
@@ -400,20 +404,16 @@ export const Gallery: React.FC = () => {
               </button>
               <button
                 onClick={(e) => {
-                  // CERRAR FOTO (BOTÓN X): Limpia la pantalla y el historial
                   e.stopPropagation();
-                  setSelectedId(null);
-                  setVerReacciones(false);
-                  if (window.history.state?.modalOpen) {
-                    window.history.back();
-                  }
+                  closeModal();
                 }}
                 className="absolute top-6 right-6 z-[110] p-3 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200 transition-all shadow-lg"
               >
                 <X size={20} />
               </button>
 
-              <div className="w-full md:w-[65%] bg-black relative h-[45vh] md:h-auto overflow-hidden">
+              {/* FOTO MÁS GRANDE EN MÓVIL: Cambiado a h-[55vh] para que la foto sea más alta */}
+              <div className="w-full md:w-[65%] bg-black relative h-[55vh] md:h-full overflow-hidden shrink-0">
                 <Swiper
                   modules={[Pagination, Navigation]}
                   pagination={{ clickable: true }}
@@ -456,7 +456,8 @@ export const Gallery: React.FC = () => {
                 </Swiper>
               </div>
 
-              <div className="w-full md:w-[35%] p-8 flex flex-col bg-white overflow-y-auto items-center">
+              {/* INFO CONTENEDOR */}
+              <div className="w-full md:w-[35%] p-8 flex flex-col bg-white overflow-y-auto items-center flex-1">
                 <div className="w-full flex flex-col gap-6 flex-1 items-center pb-16">
                   <div className="text-center space-y-2">
                     <div className="p-3 bg-pink-50 rounded-full w-fit mx-auto">
@@ -600,7 +601,7 @@ export const Gallery: React.FC = () => {
                           ).isConfirmed
                         ) {
                           await deleteDoc(doc(db, "memorias", selected.id));
-                          setSelectedId(null);
+                          closeModal();
                         }
                       }}
                       className="w-full flex flex-col items-center gap-1.5 p-6 bg-red-50 text-red-500 rounded-[35px] hover:bg-red-500 hover:text-white transition-all shadow-sm"
