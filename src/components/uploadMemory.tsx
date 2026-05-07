@@ -31,12 +31,7 @@ export const UploadMemory: React.FC<UploadMemoryProps> = ({ onComplete }) => {
     { id: "Cita", icon: "🌹" },
     { id: "Viaje", icon: "✈️" },
     { id: "Diversión", icon: "😂" },
-    { id: "Aniversario", icon: "✨" },
-    { id: "Comida", icon: "🍕" },
-    { id: "Perro", icon: "🐶" },
-    { id: "Gato", icon: "🐱" },
-    { id: "Recuerdo", icon: "📸" },
-    { id: "Momentos Random", icon: "🎲" },
+    { id: "Especial", icon: "💖" },
   ];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
