@@ -311,18 +311,18 @@ export const Gallery: React.FC = () => {
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="relative bg-white w-full max-w-6xl md:rounded-[60px] overflow-hidden flex flex-col md:flex-row h-full md:h-[85vh] z-50 shadow-2xl"
             >
-              {/* BOTÓN EDITAR (DENTRO DE LA IMAGEN) */}
+              {/* EDITAR SOBRE LA FOTO */}
               <button
                 onClick={() => handleEdit(selected)}
-                className="absolute top-8 left-8 z-[110] p-4 bg-white/10 text-white rounded-full hover:bg-white/20 backdrop-blur-md transition-all shadow-xl"
+                className="absolute top-8 left-8 z-[110] p-4 bg-black/20 text-white rounded-full hover:bg-black/40 backdrop-blur-md transition-all shadow-xl"
               >
                 <Pencil size={24} />
               </button>
 
-              {/* BOTÓN CERRAR */}
+              {/* CERRAR VISIBLE */}
               <button
                 onClick={() => setSelected(null)}
-                className="absolute top-8 right-8 z-[110] p-4 bg-white/10 text-white rounded-full hover:bg-white/20 backdrop-blur-md transition-all shadow-xl"
+                className="absolute top-8 right-8 z-[110] p-4 bg-slate-100 text-slate-400 rounded-full hover:bg-slate-200 transition-all shadow-lg"
               >
                 <X size={24} />
               </button>
@@ -393,7 +393,6 @@ export const Gallery: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* AUTOR ORIGINAL */}
                   <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-[30px] border border-slate-100 w-full">
                     <img
                       src={selected.autorFoto}
@@ -412,13 +411,12 @@ export const Gallery: React.FC = () => {
 
                   <div className="h-px bg-slate-100 w-full" />
 
-                  {/* TEXTO CENTRADO */}
                   <p className="text-slate-600 text-xl italic font-medium leading-relaxed text-center px-4">
                     "{selected.descripcion}"
                   </p>
 
                   <div className="mt-auto pt-8 w-full">
-                    <div className="flex gap-3 p-4 bg-pink-50/50 rounded-full border border-pink-100 justify-center mb-8">
+                    <div className="flex gap-3 p-4 bg-pink-50/50 rounded-full border border-pink-100 justify-center mb-4">
                       {["❤️", "😂", "🔥", "😮", "🙌"].map((emoji) => (
                         <button
                           key={emoji}
@@ -435,7 +433,30 @@ export const Gallery: React.FC = () => {
                       ))}
                     </div>
 
-                    {/* BOTÓN ELIMINAR CENTRADO */}
+                    {/* QUIÉNES REACCIONARON */}
+                    {selected.reacciones &&
+                      Object.keys(selected.reacciones).length > 0 && (
+                        <div className="flex flex-wrap justify-center gap-2 mb-8 animate-in fade-in slide-in-from-bottom-2">
+                          {Object.values(selected.reacciones).map((re, idx) => (
+                            <div key={idx} className="group relative">
+                              <div className="relative">
+                                <img
+                                  src={re.foto}
+                                  className="w-8 h-8 rounded-full border-2 border-white shadow-sm"
+                                  alt={re.nombre}
+                                />
+                                <span className="absolute -bottom-1 -right-1 text-[10px] bg-white rounded-full shadow-sm w-4 h-4 flex items-center justify-center">
+                                  {re.emoji}
+                                </span>
+                              </div>
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-1 bg-slate-900 text-white text-[10px] rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                                {re.nombre}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
                     <button
                       onClick={async () => {
                         const res = await Swal.fire({
