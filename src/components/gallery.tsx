@@ -121,7 +121,6 @@ export const Gallery: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  // Control del botón "Atrás" de Android para no cerrar la app
   useEffect(() => {
     const handlePopState = () => {
       if (selectedId !== null) {
@@ -223,7 +222,6 @@ export const Gallery: React.FC = () => {
     return almanaque;
   }, [memorias, filtro]);
 
-  // Cierra el modal de forma segura (con o sin historial)
   const closeModal = () => {
     if (window.history.state?.modalOpen) {
       window.history.back();
@@ -266,9 +264,9 @@ export const Gallery: React.FC = () => {
         .sort((a, b) => Number(b) - Number(a))
         .map((anio) => (
           <div key={anio} className="relative mb-32 pt-10">
-            {/* AÑO PERFECTAMENTE CENTRADO */}
-            <div className="absolute top-[-30px] md:top-[-50px] inset-x-0 w-full flex justify-center items-center pointer-events-none select-none z-0 opacity-[0.08] overflow-hidden">
-              <h2 className="text-[140px] md:text-[180px] font-black leading-none tracking-tighter text-slate-900 text-center">
+            {/* CORRECCIÓN FINAL PARA EL AÑO: text-[85px] solo en móvil, md:text-[180px] en PC. Centrado perfecto. */}
+            <div className="absolute top-[-20px] md:top-[-50px] left-0 w-full flex justify-center pointer-events-none select-none z-0 opacity-[0.08] overflow-hidden">
+              <h2 className="text-[85px] md:text-[180px] font-black leading-none tracking-tighter text-slate-900">
                 {anio}
               </h2>
             </div>
@@ -377,7 +375,6 @@ export const Gallery: React.FC = () => {
 
       <AnimatePresence>
         {selected && (
-          // MODAL: Ajustado p-0 en móviles para aprovechar toda la pantalla
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-10">
             <motion.div
               initial={{ opacity: 0 }}
@@ -390,7 +387,6 @@ export const Gallery: React.FC = () => {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              // MODAL CONTENEDOR: Ocupa todo el alto y ancho en móvil
               className="relative bg-white w-full h-full max-w-7xl md:rounded-[50px] overflow-hidden flex flex-col md:flex-row md:h-[85vh] z-50 shadow-2xl"
             >
               <button
@@ -412,8 +408,7 @@ export const Gallery: React.FC = () => {
                 <X size={20} />
               </button>
 
-              {/* FOTO MÁS GRANDE EN MÓVIL: Cambiado a h-[55vh] para que la foto sea más alta */}
-              <div className="w-full md:w-[65%] bg-black relative h-[55vh] md:h-full overflow-hidden shrink-0">
+              <div className="w-full md:w-[65%] bg-black relative h-[60vh] min-h-[60vh] md:h-full md:min-h-0 overflow-hidden shrink-0">
                 <Swiper
                   modules={[Pagination, Navigation]}
                   pagination={{ clickable: true }}
@@ -456,7 +451,6 @@ export const Gallery: React.FC = () => {
                 </Swiper>
               </div>
 
-              {/* INFO CONTENEDOR */}
               <div className="w-full md:w-[35%] p-8 flex flex-col bg-white overflow-y-auto items-center flex-1">
                 <div className="w-full flex flex-col gap-6 flex-1 items-center pb-16">
                   <div className="text-center space-y-2">
