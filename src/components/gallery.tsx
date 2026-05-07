@@ -37,13 +37,11 @@ interface Archivo {
   url: string;
   tipo: "foto" | "video";
 }
-
 interface Reaccion {
   nombre: string;
   foto: string;
   emoji: string;
 }
-
 interface Memoria {
   id: string;
   archivos?: Archivo[];
@@ -77,6 +75,24 @@ export const Gallery: React.FC = () => {
     { id: "Momentos Random", icon: "🎲" },
   ];
 
+  // Lógica para Recuerdo Aleatorio (Escucha el evento de App.js)
+  useEffect(() => {
+    const handleMagic = () => {
+      if (memorias.length > 0) {
+        const randomMem = memorias[Math.floor(Math.random() * memorias.length)];
+        setSelected(randomMem);
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ["#ec4899", "#f43f5e", "#ffffff"],
+        });
+      }
+    };
+    window.addEventListener("magicMemory", handleMagic);
+    return () => window.removeEventListener("magicMemory", handleMagic);
+  }, [memorias]);
+
   useEffect(() => {
     const q = query(collection(db, "memorias"), orderBy("fecha", "desc"));
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -87,18 +103,6 @@ export const Gallery: React.FC = () => {
     });
     return () => unsubscribe();
   }, []);
-
-  const handleRandomMemory = () => {
-    if (memorias.length === 0) return;
-    const randomIndex = Math.floor(Math.random() * memorias.length);
-    setSelected(memorias[randomIndex]);
-    confetti({
-      particleCount: 150,
-      spread: 70,
-      origin: { y: 0.6 },
-      colors: ["#ec4899", "#f43f5e", "#ffffff"],
-    });
-  };
 
   const handleReaccionar = async (mId: string, emoji: string) => {
     if (!auth.currentUser) return;
@@ -176,9 +180,7 @@ export const Gallery: React.FC = () => {
     filtradas.forEach((m) => {
       const d = parsearFecha(m.fecha);
       const anio = d.getFullYear();
-      const mes =
-        d.toLocaleString("es-ES", { month: "long" }).charAt(0).toUpperCase() +
-        d.toLocaleString("es-ES", { month: "long" }).slice(1);
+      const mes = d.toLocaleString("es-ES", { month: "long" }).toUpperCase();
       const dia = d.getDate();
       if (!almanaque[anio]) almanaque[anio] = {};
       if (!almanaque[anio][mes]) almanaque[anio][mes] = {};
@@ -198,49 +200,39 @@ export const Gallery: React.FC = () => {
       <div className="flex flex-col items-center justify-center py-40 gap-4">
         <Loader2 className="animate-spin text-pink-500" size={48} />
         <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest text-center">
-          Organizando recuerdos...
+          Cargando...
         </p>
       </div>
     );
 
   return (
     <div className="w-full max-w-7xl mx-auto pb-20 px-4">
-      {/* HEADER: SE USA 'FILTER' AQUÍ */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-16 sticky top-0 z-50 bg-[#fafafb]/95 backdrop-blur-md py-6 border-b border-slate-100">
-        <div className="flex items-center gap-3 overflow-x-auto no-scrollbar w-full md:w-auto">
-          {/* AQUÍ SE USA EL ICONO FILTER */}
-          <div className="p-3 bg-white rounded-2xl shadow-sm border border-slate-100 shrink-0">
-            <Filter size={18} className="text-pink-500" />
-          </div>
-          {categoriasMaster.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setFiltro(cat.id)}
-              className={`px-6 py-3 rounded-2xl text-[11px] font-black transition-all shrink-0 flex items-center gap-2 border shadow-sm ${
-                filtro === cat.id
-                  ? "bg-slate-900 text-white border-slate-900 shadow-xl"
-                  : "bg-white text-slate-500 border-slate-100 hover:border-pink-200"
-              }`}
-            >
-              <span>{cat.icon}</span> {cat.id}
-            </button>
-          ))}
+      {/* Barra de Filtros (Se usa Filter) */}
+      <div className="flex items-center gap-3 mb-20 sticky top-0 z-40 bg-[#fafafb]/95 backdrop-blur-md py-6 overflow-x-auto no-scrollbar border-b border-slate-100">
+        <div className="p-3 bg-white rounded-2xl shadow-sm border border-slate-100 shrink-0">
+          <Filter size={18} className="text-pink-500" />
         </div>
-
-        <button
-          onClick={handleRandomMemory}
-          className="flex items-center gap-2 px-8 py-4 bg-white text-pink-500 border-2 border-pink-500 rounded-[22px] font-black uppercase text-[10px] tracking-[0.2em] hover:bg-pink-500 hover:text-white transition-all shadow-xl active:scale-95 shrink-0"
-        >
-          <Sparkles size={16} /> Recuerdo Aleatorio
-        </button>
+        {categoriasMaster.map((cat) => (
+          <button
+            key={cat.id}
+            onClick={() => setFiltro(cat.id)}
+            className={`px-6 py-3 rounded-2xl text-[11px] font-black transition-all shrink-0 flex items-center gap-2 border shadow-sm ${
+              filtro === cat.id
+                ? "bg-slate-900 text-white border-slate-900"
+                : "bg-white text-slate-500 border-slate-100 hover:border-pink-200"
+            }`}
+          >
+            <span>{cat.icon}</span> {cat.id}
+          </button>
+        ))}
       </div>
 
-      {/* CRONOLOGÍA */}
+      {/* Cronología Principal */}
       {Object.keys(datosCrono)
         .sort((a, b) => Number(b) - Number(a))
         .map((anio) => (
-          <div key={anio} className="relative mb-32 pt-10">
-            {/* Año de fondo absoluto para que no se mezcle */}
+          <div key={anio} className="relative mb-40 pt-10">
+            {/* Año de fondo absoluto */}
             <div className="absolute top-0 left-0 w-full pointer-events-none select-none z-0 opacity-[0.03]">
               <h2 className="text-[150px] md:text-[250px] font-black leading-none tracking-tighter text-slate-900">
                 {anio}
@@ -250,8 +242,10 @@ export const Gallery: React.FC = () => {
             <div className="relative z-10">
               {Object.keys(datosCrono[anio]).map((mes) => (
                 <div key={mes} className="mb-24">
+                  {/* Mes Cabecera (Se usa Sparkles para diseño) */}
                   <div className="flex items-center gap-6 mb-16">
-                    <div className="bg-pink-500 text-white px-8 py-3 rounded-[20px] shadow-lg shadow-pink-100">
+                    <div className="bg-pink-500 text-white px-8 py-3 rounded-[20px] shadow-lg shadow-pink-100 flex items-center gap-2">
+                      <Sparkles size={16} className="text-pink-200" />
                       <span className="text-[12px] font-black uppercase tracking-[0.4em]">
                         {mes}
                       </span>
@@ -263,12 +257,12 @@ export const Gallery: React.FC = () => {
                     .sort((a, b) => Number(b) - Number(a))
                     .map((dia) => (
                       <div key={dia} className="mb-20">
-                        {/* FORMATO CORREGIDO: 6 de Mayo de 2026 */}
+                        {/* Fecha: 6 de mayo de 2026 */}
                         <div className="flex items-baseline gap-3 mb-10 border-l-8 border-pink-500 pl-6">
                           <span className="text-4xl font-black text-slate-900 leading-none">
                             {dia}{" "}
                             <span className="text-xl font-medium text-slate-400 italic">
-                              de {mes} de {anio}
+                              de {mes.toLowerCase()} de {anio}
                             </span>
                           </span>
                         </div>
@@ -287,6 +281,7 @@ export const Gallery: React.FC = () => {
                                   onClick={() => setSelected(m)}
                                 >
                                   <div className="aspect-square bg-slate-100 overflow-hidden relative">
+                                    {/* Se usa Heart aquí */}
                                     <div className="absolute top-6 right-6 z-20 text-white/50 group-hover:text-pink-500 transition-colors">
                                       <Heart size={24} fill="currentColor" />
                                     </div>
@@ -298,7 +293,7 @@ export const Gallery: React.FC = () => {
                                           muted
                                           playsInline
                                         />
-                                        <div className="absolute inset-0 flex items-center justify-center bg-black/10 transition-all">
+                                        <div className="absolute inset-0 flex items-center justify-center bg-black/10">
                                           <div className="w-14 h-14 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center">
                                             <Play
                                               size={28}
@@ -334,7 +329,7 @@ export const Gallery: React.FC = () => {
           </div>
         ))}
 
-      {/* MODAL DETALLE */}
+      {/* Modal */}
       <AnimatePresence>
         {selected && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-0 md:p-10">
@@ -478,7 +473,7 @@ export const Gallery: React.FC = () => {
                       onClick={async () => {
                         const res = await Swal.fire({
                           title: "¿Eliminar?",
-                          text: "Esta acción no se puede deshacer",
+                          text: "Se borrará definitivamente",
                           icon: "warning",
                           showCancelButton: true,
                           confirmButtonColor: "#ef4444",
