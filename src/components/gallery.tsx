@@ -63,9 +63,9 @@ export const Gallery: React.FC = () => {
   const [filtro, setFiltro] = useState("Todos");
 
   const categoriasMaster = [
-    { id: "Todos", icon: "🌈" },
-    { id: "Cita", icon: "🌹" },
-    { id: "Viaje", icon: "✈️" },
+    { id: "Todos", icon: "" },
+    { id: "Cita", icon: "" },
+    { id: "Viaje", icon: "" },
     { id: "Diversión", icon: "😂" },
     { id: "Aniversario", icon: "✨" },
     { id: "Comida", icon: "🍕" },
@@ -75,7 +75,7 @@ export const Gallery: React.FC = () => {
     { id: "Momentos Random", icon: "🎲" },
   ];
 
-  // --- ESCUCHA EL EVENTO DEL BOTÓN DE LA BARRA LATERAL ---
+  // --- 1. LÓGICA PARA RECUERDO ALEATORIO (ESCUCHA A APP.TSX) ---
   useEffect(() => {
     const handleMagic = () => {
       if (memorias.length > 0) {
@@ -87,8 +87,11 @@ export const Gallery: React.FC = () => {
           origin: { y: 0.6 },
           colors: ["#ec4899", "#f43f5e", "#ffffff"],
         });
+      } else {
+        Swal.fire("Baúl vacío", "Aún no hay recuerdos para mostrar", "info");
       }
     };
+    // Escucha el evento que dispara App.tsx
     window.addEventListener("magicMemory", handleMagic);
     return () => window.removeEventListener("magicMemory", handleMagic);
   }, [memorias]);
@@ -176,12 +179,11 @@ export const Gallery: React.FC = () => {
       filtro === "Todos"
         ? memorias
         : memorias.filter((m) => m.categoria === filtro);
+
     filtradas.forEach((m) => {
       const d = parsearFecha(m.fecha);
       const anio = d.getFullYear();
-      const mes =
-        d.toLocaleString("es-ES", { month: "long" }).charAt(0).toUpperCase() +
-        d.toLocaleString("es-ES", { month: "long" }).slice(1);
+      const mes = d.toLocaleString("es-ES", { month: "long" }).toUpperCase();
       const dia = d.getDate();
       if (!almanaque[anio]) almanaque[anio] = {};
       if (!almanaque[anio][mes]) almanaque[anio][mes] = {};
@@ -201,14 +203,14 @@ export const Gallery: React.FC = () => {
       <div className="flex flex-col items-center justify-center py-40 gap-4">
         <Loader2 className="animate-spin text-pink-500" size={48} />
         <p className="text-slate-400 font-black text-[10px] uppercase tracking-widest text-center">
-          Organizando recuerdos...
+          Cargando...
         </p>
       </div>
     );
 
   return (
     <div className="w-full max-w-7xl mx-auto pb-20 px-4">
-      {/* Barra de Filtros (Se usa Filter) */}
+      {/* Barra de Filtros */}
       <div className="flex items-center gap-3 mb-20 sticky top-0 z-40 bg-[#fafafb]/95 backdrop-blur-md py-6 overflow-x-auto no-scrollbar border-b border-slate-100">
         <div className="p-3 bg-white rounded-2xl shadow-sm border border-slate-100 shrink-0">
           <Filter size={18} className="text-pink-500" />
@@ -228,12 +230,12 @@ export const Gallery: React.FC = () => {
         ))}
       </div>
 
-      {/* Cronología */}
+      {/* --- 2. CRONOLOGÍA CORREGIDA --- */}
       {Object.keys(datosCrono)
         .sort((a, b) => Number(b) - Number(a))
         .map((anio) => (
           <div key={anio} className="relative mb-32 pt-10">
-            {/* Año de fondo absoluto */}
+            {/* Año de fondo absoluto (Z-0) */}
             <div className="absolute top-0 left-0 w-full pointer-events-none select-none z-0 opacity-[0.03]">
               <h2 className="text-[150px] md:text-[250px] font-black leading-none tracking-tighter text-slate-900">
                 {anio}
@@ -257,7 +259,7 @@ export const Gallery: React.FC = () => {
                     .sort((a, b) => Number(b) - Number(a))
                     .map((dia) => (
                       <div key={dia} className="mb-20">
-                        {/* FECHA FORMATEADA: "6 de Mayo de 2026" */}
+                        {/* FECHA FORMATEADA LARGA: "6 de Mayo de 2026" */}
                         <div className="flex items-baseline gap-3 mb-10 border-l-8 border-pink-500 pl-6">
                           <span className="text-4xl font-black text-slate-900 leading-none">
                             {dia}{" "}
@@ -311,7 +313,7 @@ export const Gallery: React.FC = () => {
                                     )}
                                   </div>
                                   <div className="p-10">
-                                    <p className="text-slate-600 text-sm leading-relaxed italic line-clamp-2 font-medium text-center italic line-clamp-2 font-medium text-center">
+                                    <p className="text-slate-600 text-sm leading-relaxed italic line-clamp-2 font-medium text-center">
                                       "{m.descripcion}"
                                     </p>
                                   </div>
@@ -468,7 +470,6 @@ export const Gallery: React.FC = () => {
                       />
                     </div>
 
-                    {/* BOTÓN "BORRAR DEL BAÚL" - Aquí se usa */}
                     <button
                       onClick={async () => {
                         const res = await Swal.fire({
