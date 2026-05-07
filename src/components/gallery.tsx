@@ -119,6 +119,19 @@ export const Gallery: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
+  // EFECTO PARA CONTROLAR EL BOTÓN FÍSICO DE RETROCESO EN ANDROID
+  useEffect(() => {
+    const handleBackButton = () => {
+      if (selectedId !== null) {
+        setSelectedId(null);
+        setVerReacciones(false);
+      }
+    };
+
+    window.addEventListener("popstate", handleBackButton);
+    return () => window.removeEventListener("popstate", handleBackButton);
+  }, [selectedId]);
+
   const handleReaccionar = async (mId: string, emoji: string) => {
     if (!auth.currentUser) return;
     const user = auth.currentUser;
@@ -220,7 +233,8 @@ export const Gallery: React.FC = () => {
     );
 
   return (
-    <div className="w-full max-w-7xl mx-auto pb-20 px-4">
+    // CONTENEDOR PRINCIPAL: overflow-x-hidden para evitar cualquier tambaleo lateral
+    <div className="w-full max-w-7xl mx-auto pb-20 px-4 overflow-x-hidden min-h-screen">
       <div className="flex items-center gap-3 mb-10 sticky top-0 z-40 bg-[#fafafb]/95 backdrop-blur-md py-4 overflow-x-auto no-scrollbar border-b border-slate-100 px-2">
         <Filter size={16} className="text-slate-400 shrink-0" />
         {categoriasMaster.map((cat) => (
@@ -242,12 +256,13 @@ export const Gallery: React.FC = () => {
         .sort((a, b) => Number(b) - Number(a))
         .map((anio) => (
           <div key={anio} className="relative mb-32 pt-10">
-            {/* CORRECCIÓN 2: left-0, overflow-hidden y text-center añadidos */}
-            <div className="absolute top-[-50px] left-0 w-full pointer-events-none select-none z-0 opacity-[0.1] overflow-hidden">
-              <h2 className="text-[150px] md:text-[90px] font-black leading-none tracking-tighter text-slate-900 text-center">
+            {/* FONDO DEL AÑO: Totalmente centrado, sin desbordarse y ajustado a celulares */}
+            <div className="absolute top-[-30px] md:top-[-50px] left-0 w-full flex justify-center pointer-events-none select-none z-0 opacity-[0.08] overflow-hidden">
+              <h2 className="text-[120px] md:text-[180px] font-black leading-none tracking-tighter text-slate-900 whitespace-nowrap">
                 {anio}
               </h2>
             </div>
+
             <div className="relative z-10">
               {Object.keys(datosCrono[anio]).map((mes) => (
                 <div key={mes} className="mb-24">
@@ -282,7 +297,14 @@ export const Gallery: React.FC = () => {
                                 <motion.div
                                   key={m.id}
                                   whileHover={{ y: -8 }}
-                                  onClick={() => setSelectedId(m.id)}
+                                  onClick={() => {
+                                    // ABRIR FOTO: Registra el evento en el historial del celular
+                                    window.history.pushState(
+                                      { modalOpen: true },
+                                      ""
+                                    );
+                                    setSelectedId(m.id);
+                                  }}
                                   className="group relative bg-white rounded-[40px] overflow-hidden shadow-xl border-4 border-white cursor-pointer"
                                 >
                                   <div className="aspect-square bg-slate-100 overflow-hidden relative">
@@ -301,7 +323,6 @@ export const Gallery: React.FC = () => {
                                     </div>
                                     {principal.tipo === "video" ? (
                                       <div className="w-full h-full relative bg-black">
-                                        {/* CORRECCIÓN 1A: #t=0.001 añadido a la url del video */}
                                         <video
                                           src={`${principal.url}#t=0.001`}
                                           className="w-full h-full object-cover"
@@ -352,7 +373,14 @@ export const Gallery: React.FC = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={() => setSelectedId(null)}
+              onClick={() => {
+                // CERRAR FOTO (FONDO OSCURO): Limpia la pantalla y el historial
+                setSelectedId(null);
+                setVerReacciones(false);
+                if (window.history.state?.modalOpen) {
+                  window.history.back();
+                }
+              }}
               className="absolute inset-0 bg-slate-900/95 backdrop-blur-3xl"
             />
             <motion.div
@@ -371,9 +399,14 @@ export const Gallery: React.FC = () => {
                 <Pencil size={20} />
               </button>
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  // CERRAR FOTO (BOTÓN X): Limpia la pantalla y el historial
+                  e.stopPropagation();
                   setSelectedId(null);
                   setVerReacciones(false);
+                  if (window.history.state?.modalOpen) {
+                    window.history.back();
+                  }
                 }}
                 className="absolute top-6 right-6 z-[110] p-3 bg-slate-100 text-slate-500 rounded-full hover:bg-slate-200 transition-all shadow-lg"
               >
@@ -399,7 +432,6 @@ export const Gallery: React.FC = () => {
                       className="flex items-center justify-center bg-black overflow-hidden"
                     >
                       {arc.tipo === "video" ? (
-                        /* CORRECCIÓN 1B: #t=0.001 añadido al video del Swiper */
                         <video
                           src={`${arc.url}#t=0.001`}
                           controls
